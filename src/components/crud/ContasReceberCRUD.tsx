@@ -261,6 +261,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       forma_cobranca_id: conta.forma_cobranca_id || '',
       descricao: conta.descricao,
       valor: conta.valor.toString(),
+      valor: (conta.valor ?? 0).toString(),
       status: conta.status,
       data_vencimento: conta.data_vencimento,
       data_recebimento: conta.data_recebimento || '',
