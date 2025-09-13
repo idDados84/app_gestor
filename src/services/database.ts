@@ -582,13 +582,25 @@ export const contasReceberServiceExtended = {
   },
 
   // Override the create method to handle recurrence and installments
-  async create(item: Omit<ContaReceber, 'id' | 'created_at' | 'updated_at' | 'empresas' | 'participantes' | 'categorias' | 'departamentos' | 'formas_cobranca'>): Promise<ContaReceber[]> {
+  async create(item: Omit<ContaReceber, 'id' | 'created_at' | 'updated_at' | 'empresas' | 'participantes' | 'categorias' | 'departamentos' | 'formas_cobranca' | 'contas_financeiras' | 'tipos_documentos'>): Promise<ContaReceber[]> {
     if (!isSupabaseConfigured()) {
       throwConfigError();
     }
     
     const createdItems: ContaReceber[] = [];
 
+    // Generate SKU for installments if needed
+    const generateSKU = (installmentNumber: number, totalInstallments: number, participantDoc?: string) => {
+      if (!item.tipo_documento_id || !item.n_docto_origem) return undefined;
+      
+      // Get document type code (first 3 digits)
+      const docTypeCode = item.tipo_documento_id.substring(0, 3);
+      
+      // Get last 2 digits of participant document
+      const lastTwoDigits = participantDoc ? participantDoc.slice(-2) : '00';
+      
+      return `${docTypeCode}_${item.n_docto_origem}-${installmentNumber}-${totalInstallments}_${lastTwoDigits}`;
+    };
     // Validate recurrence data before processing
     if (item.eh_recorrente) {
       if (!item.periodicidade || !item.frequencia_recorrencia || !item.data_inicio_recorrencia) {

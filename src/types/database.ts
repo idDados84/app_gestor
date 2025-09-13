@@ -118,6 +118,15 @@ export interface ContaPagar {
   categoria_id?: string;
   departamento_id?: string;
   forma_cobranca_id?: string;
+  conta_cobranca_id?: string;
+  tipo_documento_id?: string;
+  sku_parcela?: string;
+  intervalo_ini?: number;
+  intervalo_rec?: number;
+  n_docto_origem?: string;
+  n_doctos_ref?: string[];
+  projetos?: string[];
+  eh_vencto_fixo?: boolean;
   descricao: string;
   valor: number;
   status: 'pendente' | 'pago' | 'cancelado';
@@ -144,6 +153,8 @@ export interface ContaPagar {
   categorias?: Categoria;
   departamentos?: Departamento;
   formas_cobranca?: FormaCobranca;
+  contas_financeiras?: ContaFinanceira;
+  tipos_documentos?: TipoDocumento;
 }
 
 export interface ContaReceber {
@@ -153,6 +164,15 @@ export interface ContaReceber {
   categoria_id?: string;
   departamento_id?: string;
   forma_cobranca_id?: string;
+  conta_cobranca_id?: string;
+  tipo_documento_id?: string;
+  sku_parcela?: string;
+  intervalo_ini?: number;
+  intervalo_rec?: number;
+  n_docto_origem?: string;
+  n_doctos_ref?: string[];
+  projetos?: string[];
+  eh_vencto_fixo?: boolean;
   descricao: string;
   valor: number;
   status: 'pendente' | 'recebido' | 'cancelado';
@@ -178,6 +198,36 @@ export interface ContaReceber {
   categorias?: Categoria;
   departamentos?: Departamento;
   formas_cobranca?: FormaCobranca;
+  contas_financeiras?: ContaFinanceira;
+  tipos_documentos?: TipoDocumento;
+}
+
+export interface ContaFinanceira {
+  id: string;
+  codigo_conta?: string;
+  nome_conta: string;
+  tipo_conta: 'BANCO' | 'CAIXA' | 'POUPANCA' | 'INVESTIMENTO';
+  banco_codigo?: string;
+  agencia?: string;
+  conta_numero?: string;
+  saldo_inicial: number;
+  saldo_atual: number;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string;
+}
+
+export interface TipoDocumento {
+  id: string;
+  codigo_tipo: string;
+  nome_tipo: string;
+  sigla_tipo: string;
+  descricao?: string;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string;
 }
 
 export interface ElectronicData {

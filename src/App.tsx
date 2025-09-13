@@ -144,6 +144,10 @@ function App() {
         return <DepartamentosCRUD showError={showError} showSuccess={showSuccess} />;
       case 'formas':
         return <FormasCobrancaCRUD showError={showError} showSuccess={showSuccess} />;
+      case 'contas-financeiras':
+        return <ContasFinanceirasCRUD showError={showError} showSuccess={showSuccess} />;
+      case 'tipos-documentos':
+        return <TiposDocumentosCRUD showError={showError} showSuccess={showSuccess} />;
       case 'contas-pagar':
         return <ContasPagarCRUD showError={showError} showSuccess={showSuccess} />;
       case 'contas-receber':

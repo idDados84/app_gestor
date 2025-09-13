@@ -511,6 +511,18 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
                 <input
                   type="checkbox"
                   className="form-checkbox h-4 w-4 text-blue-600"
+                  checked={formData.eh_vencto_fixo}
+                  onChange={(e) => setFormData({ ...formData, eh_vencto_fixo: e.target.checked })}
+                />
+                <span className="ml-2 text-sm font-medium text-gray-700">Vencimento Fixo?</span>
+              </label>
+            </div>
+            
+            <div className="col-span-2">
+              <label className="inline-flex items-center">
+                <input
+                  type="checkbox"
+                  className="form-checkbox h-4 w-4 text-blue-600"
                   checked={formData.eh_recorrente}
                   onChange={(e) => setFormData({ 
                     ...formData, 
