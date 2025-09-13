@@ -6,6 +6,7 @@ import Button from '../ui/Button';
 import Select from '../ui/Select';
 import ElectronicDataModal from '../modals/ElectronicDataModal';
 import MassCancellationModal from '../modals/MassCancellationModal';
+import InstallmentManagementModal from '../modals/InstallmentManagementModal';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import { 
@@ -62,6 +63,12 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     parentId: string | null;
   }>({ isOpen: false, records: [], parentId: null });
   const [massCancellationLoading, setMassCancellationLoading] = useState(false);
+  const [installmentModal, setInstallmentModal] = useState<{
+    isOpen: boolean;
+    records: ContaPagar[];
+    parentId: string | null;
+  }>({ isOpen: false, records: [], parentId: null });
+  const [installmentLoading, setInstallmentLoading] = useState(false);
   const { showError: internalShowError, showSuccess: internalShowSuccess } = useToast();
   
   // Use external toast functions if provided, otherwise use internal ones
@@ -97,6 +104,16 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       key: 'descricao' as keyof ContaPagar,
       header: 'Descrição',
       sortable: true
+    },
+    {
+      key: 'numero_parcela' as keyof ContaPagar,
+      header: 'Parcela',
+      render: (value: number, item: ContaPagar) => {
+        if (!item.eh_parcelado && !item.lancamento_pai_id) return '-';
+        const parcela = value || 1;
+        const total = item.total_parcelas || 1;
+        return `${parcela}/${total}`;
+      }
     },
     {
       key: 'empresas' as keyof ContaPagar,
@@ -140,6 +157,24 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
         return date.toLocaleDateString('pt-BR');
       },
       sortable: true
+    },
+    {
+      key: 'actions' as keyof ContaPagar,
+      header: 'Ações Especiais',
+      render: (value: any, item: ContaPagar) => {
+        const isInstallment = item.eh_parcelado || item.lancamento_pai_id;
+        if (!isInstallment) return '-';
+        
+        return (
+          <button
+            onClick={() => handleInstallmentManagement(item)}
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            title="Gerenciar Parcelas"
+          >
+            Gerenciar Parcelas
+          </button>
+        );
+      }
     }
   ];
 
@@ -283,6 +318,66 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     } catch (error) {
       console.error('Erro ao excluir conta:', error);
       showError('Erro ao excluir conta a pagar');
+    }
+  };
+
+  const handleInstallmentManagement = async (conta: ContaPagar) => {
+    try {
+      // Find all related installments
+      const parentId = conta.lancamento_pai_id || conta.id;
+      
+      // Get all installments from the same series
+      const allContas = await contasPagarServiceExtended.getAllWithRelations();
+      const relatedRecords = allContas.filter(c => 
+        c.id === parentId || c.lancamento_pai_id === parentId
+      ).sort((a, b) => {
+        const aNum = a.numero_parcela || 1;
+        const bNum = b.numero_parcela || 1;
+        return aNum - bNum;
+      });
+      
+      if (relatedRecords.length === 0) {
+        showError('Nenhuma parcela encontrada para gerenciar');
+        return;
+      }
+      
+      setInstallmentModal({
+        isOpen: true,
+        records: relatedRecords,
+        parentId
+      });
+    } catch (error) {
+      console.error('Erro ao carregar parcelas:', error);
+      showError('Erro ao carregar parcelas para gerenciamento');
+    }
+  };
+
+  const handleInstallmentSave = async (installments: any[]) => {
+    if (installments.length === 0) return;
+    
+    setInstallmentLoading(true);
+    try {
+      // Update each installment
+      for (const installment of installments) {
+        const updateData = {
+          sku_parcela: installment.skuParcela,
+          data_vencimento: installment.dueDate,
+          forma_cobranca_id: installment.collectionMethodId || null,
+          conta_cobranca_id: installment.collectionAccountId || null,
+          valor: installment.amount
+        };
+        
+        await contasPagarServiceExtended.update(installment.id, updateData);
+      }
+      
+      showSuccess(`${installments.length} parcela(s) atualizada(s) com sucesso`);
+      setInstallmentModal({ isOpen: false, records: [], parentId: null });
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao salvar parcelas:', error);
+      showError('Erro ao salvar alterações das parcelas');
+    } finally {
+      setInstallmentLoading(false);
     }
   };
 
@@ -681,6 +776,17 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
         onClose={() => setIsElectronicDataModalOpen(false)}
         onSubmit={handleElectronicDataSubmit}
         initialData={currentElectronicData}
+      />
+      
+      <InstallmentManagementModal
+        isOpen={installmentModal.isOpen}
+        onClose={() => setInstallmentModal({ isOpen: false, records: [], parentId: null })}
+        onSave={handleInstallmentSave}
+        records={installmentModal.records}
+        type="pagar"
+        contasFinanceiras={contasFinanceiras}
+        formasCobranca={formasCobranca}
+        loading={installmentLoading}
       />
       
       <MassCancellationModal
