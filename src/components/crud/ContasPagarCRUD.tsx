@@ -80,6 +80,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     categoria_id: '',
     departamento_id: '',
     forma_cobranca_id: '',
+    conta_cobranca_id: '',
+    tipo_documento_id: '',
     descricao: '',
     valor: '',
     status: 'pendente' as 'pendente' | 'pago' | 'cancelado',
@@ -97,6 +99,11 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     frequencia_recorrencia: 1,
     data_inicio_recorrencia: '',
     termino_apos_ocorrencias: 0,
+    n_docto_origem: '',
+    sku_parcela: '',
+    intervalo_ini: 0,
+    intervalo_rec: 30,
+    eh_vencto_fixo: false,
   });
 
   const columns = [
@@ -228,6 +235,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       categoria_id: '',
       departamento_id: '',
       forma_cobranca_id: '',
+      conta_cobranca_id: '',
+      tipo_documento_id: '',
       descricao: '',
       valor: '',
       status: 'pendente',
@@ -245,6 +254,11 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       frequencia_recorrencia: 1,
       data_inicio_recorrencia: '',
       termino_apos_ocorrencias: 0,
+      n_docto_origem: '',
+      sku_parcela: '',
+      intervalo_ini: 0,
+      intervalo_rec: 30,
+      eh_vencto_fixo: false,
     });
     setCurrentElectronicData(null);
     setIsModalOpen(true);
@@ -258,6 +272,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       categoria_id: conta.categoria_id || '',
       departamento_id: conta.departamento_id || '',
       forma_cobranca_id: conta.forma_cobranca_id || '',
+      conta_cobranca_id: conta.conta_cobranca_id || '',
+      tipo_documento_id: conta.tipo_documento_id || '',
       descricao: conta.descricao,
       valor: (conta.valor ?? 0).toString(),
       status: conta.status,
@@ -275,6 +291,11 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       frequencia_recorrencia: conta.frequencia_recorrencia || 1,
       data_inicio_recorrencia: formatDateForInput(conta.data_inicio_recorrencia),
       termino_apos_ocorrencias: conta.termino_apos_ocorrencias || 0,
+      n_docto_origem: conta.n_docto_origem || '',
+      sku_parcela: conta.sku_parcela || '',
+      intervalo_ini: conta.intervalo_ini || 0,
+      intervalo_rec: conta.intervalo_rec || 30,
+      eh_vencto_fixo: conta.eh_vencto_fixo || false,
     });
     setCurrentElectronicData(conta.dados_ele || null);
     setIsModalOpen(true);
