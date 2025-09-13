@@ -7,6 +7,7 @@ import Select from '../ui/Select';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import { departamentosServiceExtended, empresasService } from '../../services/database';
+import { formatDateForDisplay } from '../../utils/dateUtils';
 import type { Departamento, Empresa } from '../../types/database';
 
 const DepartamentosCRUD: React.FC = () => {
