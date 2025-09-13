@@ -15,7 +15,9 @@ import {
   participantesService,
   categoriasService,
   departamentosService,
-  formasCobrancaService 
+  formasCobrancaService,
+  contasFinanceirasService,
+  tiposDocumentosService
 } from '../../services/database';
 import type { 
   ContaReceber, 
@@ -24,6 +26,8 @@ import type {
   Categoria, 
   Departamento, 
   FormaCobranca,
+  ContaFinanceira,
+  TipoDocumento,
   ElectronicData
 } from '../../types/database';
 
@@ -42,6 +46,8 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [formasCobranca, setFormasCobranca] = useState<FormaCobranca[]>([]);
+  const [contasFinanceiras, setContasFinanceiras] = useState<ContaFinanceira[]>([]);
+  const [tiposDocumentos, setTiposDocumentos] = useState<TipoDocumento[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConta, setEditingConta] = useState<ContaReceber | null>(null);
   const [isElectronicDataModalOpen, setIsElectronicDataModalOpen] = useState(false);
@@ -150,14 +156,18 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         participantesData, 
         categoriasData, 
         departamentosData, 
-        formasData
+        formasData,
+        contasFinanceirasData,
+        tiposDocumentosData
       ] = await Promise.all([
         contasReceberServiceExtended.getAllWithRelations(),
         empresasService.getAll(),
         participantesService.getAll(),
         categoriasService.getAll(),
         departamentosService.getAll(),
-        formasCobrancaService.getAll()
+        formasCobrancaService.getAll(),
+        contasFinanceirasService.getAll(),
+        tiposDocumentosService.getAll()
       ]);
       
       setContas(contasData);
@@ -167,6 +177,8 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       setCategorias(categoriasData.filter(c => c.tipo === 'receita' || c.tipo === 'ambos'));
       setDepartamentos(departamentosData);
       setFormasCobranca(formasData);
+      setContasFinanceiras(contasFinanceirasData);
+      setTiposDocumentos(tiposDocumentosData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -362,6 +374,14 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
   const categoriasOptions = categorias.map(cat => ({ value: cat.id, label: cat.nome }));
   const departamentosOptions = departamentos.map(dep => ({ value: dep.id, label: dep.nome }));
   const formasOptions = formasCobranca.map(forma => ({ value: forma.id, label: forma.nome }));
+  const contasFinanceirasOptions = contasFinanceiras.map(conta => ({ 
+    value: conta.id, 
+    label: `${conta.codigo_conta || conta.nome_conta} - ${conta.nome_conta}` 
+  }));
+  const tiposDocumentosOptions = tiposDocumentos.map(tipo => ({ 
+    value: tipo.id, 
+    label: `${tipo.codigo_tipo} - ${tipo.nome_tipo}` 
+  }));
 
   return (
     <div>
@@ -425,6 +445,22 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
               onChange={(e) => setFormData({ ...formData, forma_cobranca_id: e.target.value })}
               options={formasOptions}
               placeholder="Selecione uma forma"
+            />
+            
+            <Select
+              label="Conta de Cobrança"
+              value={formData.conta_cobranca_id}
+              onChange={(e) => setFormData({ ...formData, conta_cobranca_id: e.target.value })}
+              options={contasFinanceirasOptions}
+              placeholder="Selecione uma conta"
+            />
+            
+            <Select
+              label="Tipo de Documento"
+              value={formData.tipo_documento_id}
+              onChange={(e) => setFormData({ ...formData, tipo_documento_id: e.target.value })}
+              options={tiposDocumentosOptions}
+              placeholder="Selecione um tipo"
             />
             
             <Input

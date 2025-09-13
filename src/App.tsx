@@ -28,6 +28,8 @@ import ParticipantesCRUD from './components/crud/ParticipantesCRUD';
 import CategoriasCRUD from './components/crud/CategoriasCRUD';
 import DepartamentosCRUD from './components/crud/DepartamentosCRUD';
 import FormasCobrancaCRUD from './components/crud/FormasCobrancaCRUD';
+import ContasFinanceirasCRUD from './components/crud/ContasFinanceirasCRUD';
+import TiposDocumentosCRUD from './components/crud/TiposDocumentosCRUD';
 import { getCurrentUser, signOut } from './lib/supabase';
 
 function App() {
@@ -82,6 +84,8 @@ function App() {
     { id: 'categorias', name: 'Categorias', icon: Tags },
     { id: 'departamentos', name: 'Departamentos', icon: Briefcase },
     { id: 'formas', name: 'Formas Cobrança', icon: CreditCard },
+    { id: 'contas-financeiras', name: 'Contas Financeiras', icon: Wallet },
+    { id: 'tipos-documentos', name: 'Tipos Documentos', icon: CreditCard },
     { id: 'contas-pagar', name: 'Contas a Pagar', icon: TrendingDown },
     { id: 'contas-receber', name: 'Contas a Receber', icon: TrendingUp }
   ];
@@ -144,6 +148,10 @@ function App() {
         return <DepartamentosCRUD showError={showError} showSuccess={showSuccess} />;
       case 'formas':
         return <FormasCobrancaCRUD showError={showError} showSuccess={showSuccess} />;
+      case 'contas-financeiras':
+        return <ContasFinanceirasCRUD showError={showError} showSuccess={showSuccess} />;
+      case 'tipos-documentos':
+        return <TiposDocumentosCRUD showError={showError} showSuccess={showSuccess} />;
       case 'contas-financeiras':
         return <ContasFinanceirasCRUD showError={showError} showSuccess={showSuccess} />;
       case 'tipos-documentos':

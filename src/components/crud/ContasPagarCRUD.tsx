@@ -14,7 +14,9 @@ import {
   participantesService,
   categoriasService,
   departamentosService,
-  formasCobrancaService 
+  formasCobrancaService,
+  contasFinanceirasService,
+  tiposDocumentosService
 } from '../../services/database';
 import type { 
   ContaPagar, 
@@ -23,6 +25,8 @@ import type {
   Categoria, 
   Departamento, 
   FormaCobranca,
+  ContaFinanceira,
+  TipoDocumento,
   ElectronicData
 } from '../../types/database';
 
@@ -41,6 +45,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [formasCobranca, setFormasCobranca] = useState<FormaCobranca[]>([]);
+  const [contasFinanceiras, setContasFinanceiras] = useState<ContaFinanceira[]>([]);
+  const [tiposDocumentos, setTiposDocumentos] = useState<TipoDocumento[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
   const [isElectronicDataModalOpen, setIsElectronicDataModalOpen] = useState(false);
@@ -149,14 +155,18 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
         participantesData, 
         categoriasData, 
         departamentosData, 
-        formasData
+        formasData,
+        contasFinanceirasData,
+        tiposDocumentosData
       ] = await Promise.all([
         contasPagarServiceExtended.getAllWithRelations(),
         empresasService.getAll(),
         participantesService.getAll(),
         categoriasService.getAll(),
         departamentosService.getAll(),
-        formasCobrancaService.getAll()
+        formasCobrancaService.getAll(),
+        contasFinanceirasService.getAll(),
+        tiposDocumentosService.getAll()
       ]);
       
       setContas(contasData);
@@ -166,6 +176,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       setCategorias(categoriasData.filter(c => c.tipo === 'despesa' || c.tipo === 'ambos'));
       setDepartamentos(departamentosData);
       setFormasCobranca(formasData);
+      setContasFinanceiras(contasFinanceirasData);
+      setTiposDocumentos(tiposDocumentosData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -361,6 +373,14 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
   const categoriasOptions = categorias.map(cat => ({ value: cat.id, label: cat.nome }));
   const departamentosOptions = departamentos.map(dep => ({ value: dep.id, label: dep.nome }));
   const formasOptions = formasCobranca.map(forma => ({ value: forma.id, label: forma.nome }));
+  const contasFinanceirasOptions = contasFinanceiras.map(conta => ({ 
+    value: conta.id, 
+    label: `${conta.codigo_conta || conta.nome_conta} - ${conta.nome_conta}` 
+  }));
+  const tiposDocumentosOptions = tiposDocumentos.map(tipo => ({ 
+    value: tipo.id, 
+    label: `${tipo.codigo_tipo} - ${tipo.nome_tipo}` 
+  }));
 
   return (
     <div>
@@ -426,6 +446,22 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
               placeholder="Selecione uma forma"
             />
             
+            <Select
+              label="Conta de Cobrança"
+              value={formData.conta_cobranca_id}
+              onChange={(e) => setFormData({ ...formData, conta_cobranca_id: e.target.value })}
+              options={contasFinanceirasOptions}
+              placeholder="Selecione uma conta"
+            />
+            
+            <Select
+              label="Tipo de Documento"
+              value={formData.tipo_documento_id}
+              onChange={(e) => setFormData({ ...formData, tipo_documento_id: e.target.value })}
+              options={tiposDocumentosOptions}
+              placeholder="Selecione um tipo"
+            />
+            
             <Input
               label="Valor"
               type="number"
@@ -461,6 +497,37 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
               type="date"
               value={formData.data_pagamento}
               onChange={(e) => setFormData({ ...formData, data_pagamento: e.target.value })}
+            />
+            
+            <Input
+              label="Nº Documento Origem"
+              value={formData.n_docto_origem}
+              onChange={(e) => setFormData({ ...formData, n_docto_origem: e.target.value })}
+              placeholder="Ex: 12345"
+            />
+            
+            <Input
+              label="SKU da Parcela"
+              value={formData.sku_parcela}
+              onChange={(e) => setFormData({ ...formData, sku_parcela: e.target.value })}
+              placeholder="Auto-gerado"
+              disabled
+            />
+            
+            <Input
+              label="Intervalo Inicial (dias)"
+              type="number"
+              value={formData.intervalo_ini.toString()}
+              onChange={(e) => setFormData({ ...formData, intervalo_ini: parseInt(e.target.value) || 0 })}
+              min="0"
+            />
+            
+            <Input
+              label="Intervalo Recorrente (dias)"
+              type="number"
+              value={formData.intervalo_rec.toString()}
+              onChange={(e) => setFormData({ ...formData, intervalo_rec: parseInt(e.target.value) || 30 })}
+              min="1"
             />
             
             <div className="col-span-2">

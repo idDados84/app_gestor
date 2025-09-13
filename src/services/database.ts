@@ -14,7 +14,7 @@ const throwConfigError = () => {
 import type { 
   Usuario, GrupoEmpresa, Empresa, Departamento, 
   Categoria, Participante, FormaCobranca, ContaCobranca,
-  ContaPagar, ContaReceber
+  ContaPagar, ContaReceber, ContaFinanceira, TipoDocumento
 } from '../types/database';
 
 
@@ -123,6 +123,8 @@ export const formasCobrancaService = new DatabaseService<FormaCobranca>('formas_
 export const contasCobrancaService = new DatabaseService<ContaCobranca>('contas_cobranca');
 export const contasPagarService = new DatabaseService<ContaPagar>('contas_pagar');
 export const contasReceberService = new DatabaseService<ContaReceber>('contas_receber');
+export const contasFinanceirasService = new DatabaseService<ContaFinanceira>('contas_financeiras');
+export const tiposDocumentosService = new DatabaseService<TipoDocumento>('tipos_documentos');
 
 // Helper function to create extended services with all base methods
 function createExtendedService<T extends { id: string }>(baseService: DatabaseService<T>) {
