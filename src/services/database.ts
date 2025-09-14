@@ -312,8 +312,8 @@ export const contasPagarServiceExtended = {
       return { canDelete: false, reason: 'Registro não encontrado' };
     }
 
-    // Rule 1: Check if it's part of installments or recurring series
-    if (conta.eh_parcelado || conta.eh_recorrente || conta.lancamento_pai_id) {
+    // Rule 1: Check if it's part of installments or recurring series (including first installment)
+    if (conta.eh_parcelado || conta.eh_recorrente || conta.lancamento_pai_id || conta.total_parcelas > 1) {
       // Find all related records
       const parentId = conta.lancamento_pai_id || conta.id;
       
@@ -533,8 +533,8 @@ export const contasReceberServiceExtended = {
       return { canDelete: false, reason: 'Registro não encontrado' };
     }
 
-    // Rule 1: Check if it's part of installments or recurring series
-    if (conta.eh_parcelado || conta.eh_recorrente || conta.lancamento_pai_id) {
+    // Rule 1: Check if it's part of installments or recurring series (including first installment)
+    if (conta.eh_parcelado || conta.eh_recorrente || conta.lancamento_pai_id || conta.total_parcelas > 1) {
       // Find all related records
       const parentId = conta.lancamento_pai_id || conta.id;
       

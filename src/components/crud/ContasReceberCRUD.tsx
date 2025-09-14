@@ -117,7 +117,10 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       key: 'numero_parcela' as keyof ContaReceber,
       header: 'Parcela',
       render: (value: number, item: ContaReceber) => {
-        if (!item.eh_parcelado && !item.lancamento_pai_id) return '-';
+        // Verifica se é parte de uma série de parcelas
+        const isPartOfSeries = item.eh_parcelado || item.lancamento_pai_id || item.total_parcelas > 1;
+        if (!isPartOfSeries) return '-';
+        
         const parcela = value || 1;
         const total = item.total_parcelas || 1;
         return `${parcela}/${total}`;
@@ -170,7 +173,8 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       key: 'actions' as keyof ContaReceber,
       header: 'Ações Especiais',
       render: (value: any, item: ContaReceber) => {
-        const isInstallment = item.eh_parcelado || item.lancamento_pai_id;
+        // Verifica se é parte de uma série de parcelas (incluindo primeira parcela)
+        const isInstallment = item.eh_parcelado || item.lancamento_pai_id || item.total_parcelas > 1;
         if (!isInstallment) return '-';
         
         return (
