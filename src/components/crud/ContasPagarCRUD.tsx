@@ -7,6 +7,7 @@ import Select from '../ui/Select';
 import ElectronicDataModal from '../modals/ElectronicDataModal';
 import MassCancellationModal from '../modals/MassCancellationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
+import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import { 
@@ -69,6 +70,13 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     parentId: string | null;
   }>({ isOpen: false, records: [], parentId: null });
   const [installmentLoading, setInstallmentLoading] = useState(false);
+  const [recurrenceReplicationModal, setRecurrenceReplicationModal] = useState<{
+    isOpen: boolean;
+    originalRecord: ContaPagar | null;
+    updatedRecord: ContaPagar | null;
+    futureRecords: ContaPagar[];
+  }>({ isOpen: false, originalRecord: null, updatedRecord: null, futureRecords: [] });
+  const [recurrenceReplicationLoading, setRecurrenceReplicationLoading] = useState(false);
   const { showError: internalShowError, showSuccess: internalShowSuccess } = useToast();
   
   // Use external toast functions if provided, otherwise use internal ones
@@ -534,6 +542,10 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Store original record for comparison if editing a recurrent record
+    const originalRecord = editingConta;
+    
     try {
       const dataToSubmit = {
         ...formData,
@@ -576,7 +588,12 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       );
       
       if (editingConta) {
-        await contasPagarServiceExtended.update(editingConta.id, filteredData);
+        const updatedRecord = await contasPagarServiceExtended.update(editingConta.id, filteredData);
+        
+        // Check if this is a recurrent record and if we should show replication modal
+        if (originalRecord?.eh_recorrente && updatedRecord) {
+          await checkForRecurrenceReplication(originalRecord, updatedRecord);
+        }
       } else {
         await contasPagarServiceExtended.create(filteredData);
       }
@@ -584,6 +601,106 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       await loadData();
     } catch (error) {
       console.error('Erro ao salvar conta:', error);
+    }
+  };
+
+  const checkForRecurrenceReplication = async (originalRecord: ContaPagar, updatedRecord: ContaPagar) => {
+    try {
+      // Find all future recurrent records from the same series
+      const parentId = originalRecord.lancamento_pai_id || originalRecord.id;
+      const allContas = await contasPagarServiceExtended.getAllWithRelations();
+      
+      const futureRecords = allContas.filter(c => {
+        // Same series
+        const isSameSeries = c.id === parentId || c.lancamento_pai_id === parentId;
+        // Is recurrent
+        const isRecurrent = c.eh_recorrente;
+        // Is future (after current record)
+        const isFuture = new Date(c.data_vencimento) > new Date(updatedRecord.data_vencimento);
+        // Is open (not processed)
+        const isOpen = c.status.toLowerCase() !== 'pago' && c.status.toLowerCase() !== 'cancelado';
+        
+        return isSameSeries && isRecurrent && isFuture && isOpen;
+      }).sort((a, b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime());
+      
+      // Only show modal if there are future records and there are actual changes
+      if (futureRecords.length > 0 && hasSignificantChanges(originalRecord, updatedRecord)) {
+        setRecurrenceReplicationModal({
+          isOpen: true,
+          originalRecord,
+          updatedRecord,
+          futureRecords
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao verificar replicação de recorrência:', error);
+    }
+  };
+
+  const hasSignificantChanges = (original: ContaPagar, updated: ContaPagar): boolean => {
+    return (
+      original.data_vencimento !== updated.data_vencimento ||
+      original.valor !== updated.valor ||
+      original.descricao !== updated.descricao ||
+      original.categoria_id !== updated.categoria_id ||
+      original.observacoes !== updated.observacoes
+    );
+  };
+
+  const handleRecurrenceReplication = async (selectedChanges: any[]) => {
+    if (selectedChanges.length === 0 || !recurrenceReplicationModal.futureRecords.length) return;
+    
+    setRecurrenceReplicationLoading(true);
+    try {
+      const { originalRecord, updatedRecord, futureRecords } = recurrenceReplicationModal;
+      
+      for (const futureRecord of futureRecords) {
+        const updates: any = {};
+        
+        for (const change of selectedChanges) {
+          switch (change.field) {
+            case 'data_vencimento':
+              // Maintain recurrence pattern but update the day
+              const originalDate = new Date(originalRecord!.data_vencimento);
+              const updatedDate = new Date(updatedRecord!.data_vencimento);
+              const futureDate = new Date(futureRecord.data_vencimento);
+              
+              // Update day while maintaining month/year progression
+              futureDate.setDate(updatedDate.getDate());
+              updates.data_vencimento = futureDate.toISOString().split('T')[0];
+              break;
+              
+            case 'valor':
+              updates.valor = updatedRecord!.valor;
+              break;
+              
+            case 'descricao':
+              updates.descricao = updatedRecord!.descricao;
+              break;
+              
+            case 'categoria_id':
+              updates.categoria_id = updatedRecord!.categoria_id;
+              break;
+              
+            case 'observacoes':
+              updates.observacoes = updatedRecord!.observacoes;
+              break;
+          }
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await contasPagarServiceExtended.update(futureRecord.id, updates);
+        }
+      }
+      
+      showSuccess(`Alterações aplicadas a ${futureRecords.length} registro(s) recorrente(s) futuro(s)`);
+      setRecurrenceReplicationModal({ isOpen: false, originalRecord: null, updatedRecord: null, futureRecords: [] });
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao replicar alterações:', error);
+      showError('Erro ao aplicar alterações aos registros recorrentes');
+    } finally {
+      setRecurrenceReplicationLoading(false);
     }
   };
 
@@ -920,6 +1037,17 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
         records={massCancellationModal.records}
         type="pagar"
         loading={massCancellationLoading}
+      />
+      
+      <RecurrenceReplicationModal
+        isOpen={recurrenceReplicationModal.isOpen}
+        onClose={() => setRecurrenceReplicationModal({ isOpen: false, originalRecord: null, updatedRecord: null, futureRecords: [] })}
+        onConfirm={handleRecurrenceReplication}
+        originalRecord={recurrenceReplicationModal.originalRecord!}
+        updatedRecord={recurrenceReplicationModal.updatedRecord!}
+        futureRecords={recurrenceReplicationModal.futureRecords}
+        type="pagar"
+        loading={recurrenceReplicationLoading}
       />
       
       <ConfirmDialog
