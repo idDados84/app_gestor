@@ -8,6 +8,7 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import { gruposEmpresasService } from '../../services/database';
 import type { GrupoEmpresa } from '../../types/database';
+import { formatDateForDisplay } from '../../utils/dateUtils';
 
 const GruposEmpresasCRUD: React.FC = () => {
   const [grupos, setGrupos] = useState<GrupoEmpresa[]>([]);
