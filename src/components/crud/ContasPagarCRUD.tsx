@@ -131,7 +131,41 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
           };
           
           const periodoLabel = periodoMap[periodicidade] || periodicidade;
-          const terminoLabel = termino ? `/1-${termino}` : '/1-∞';
+          
+          // Calcular posição atual na sequência de recorrência
+          let posicaoAtual = 1;
+          if (item.lancamento_pai_id) {
+            // Para ocorrências subsequentes, calcular posição baseada na data de vencimento
+            // Assumindo que as datas seguem a periodicidade configurada
+            const dataInicio = new Date(item.data_inicio_recorrencia || item.data_vencimento);
+            const dataAtual = new Date(item.data_vencimento);
+            
+            // Calcular diferença em dias
+            const diffTime = dataAtual.getTime() - dataInicio.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            // Calcular posição baseada na periodicidade
+            switch (periodicidade) {
+              case 'diario':
+                posicaoAtual = Math.floor(diffDays / (item.frequencia_recorrencia || 1)) + 1;
+                break;
+              case 'semanal':
+                posicaoAtual = Math.floor(diffDays / (7 * (item.frequencia_recorrencia || 1))) + 1;
+                break;
+              case 'mensal':
+                // Para mensal, usar diferença de meses
+                const mesesDiff = (dataAtual.getFullYear() - dataInicio.getFullYear()) * 12 + 
+                                 (dataAtual.getMonth() - dataInicio.getMonth());
+                posicaoAtual = Math.floor(mesesDiff / (item.frequencia_recorrencia || 1)) + 1;
+                break;
+              case 'anual':
+                const anosDiff = dataAtual.getFullYear() - dataInicio.getFullYear();
+                posicaoAtual = Math.floor(anosDiff / (item.frequencia_recorrencia || 1)) + 1;
+                break;
+            }
+          }
+          
+          const terminoLabel = termino ? `/${posicaoAtual}-${termino}` : `/${posicaoAtual}-∞`;
           
           return `${periodoLabel}${terminoLabel}`;
         }
