@@ -7,6 +7,7 @@ import Select from '../ui/Select';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import { usuariosService } from '../../services/database';
+import { formatDateForDisplay } from '../../utils/dateUtils';
 import type { Usuario } from '../../types/database';
 
 const UsuariosCRUD: React.FC = () => {
