@@ -115,8 +115,29 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     },
     {
       key: 'numero_parcela' as keyof ContaReceber,
-      header: 'Parcela',
+      header: 'Parcela/Recorrência',
       render: (value: number, item: ContaReceber) => {
+        // Verifica se é recorrente
+        if (item.eh_recorrente) {
+          const periodicidade = item.periodicidade || 'mensal';
+          const frequencia = item.frequencia_recorrencia || 1;
+          const termino = item.termino_apos_ocorrencias;
+          
+          // Formatar periodicidade
+          const periodoMap: Record<string, string> = {
+            'diario': 'Diário',
+            'semanal': 'Semanal', 
+            'mensal': 'Mensal',
+            'anual': 'Anual'
+          };
+          
+          const periodoLabel = periodoMap[periodicidade] || periodicidade;
+          const frequenciaLabel = frequencia > 1 ? ` (${frequencia}x)` : '';
+          const terminoLabel = termino ? `/${termino}x` : '/∞';
+          
+          return `${periodoLabel}${frequenciaLabel}${terminoLabel}`;
+        }
+        
         // Verifica se é parte de uma série de parcelas
         const isPartOfSeries = item.eh_parcelado || item.lancamento_pai_id || item.total_parcelas > 1;
         if (!isPartOfSeries) return '-';
@@ -170,10 +191,23 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       sortable: true
     },
     {
-      key: 'actions' as keyof ContaReceber,
-      header: 'Ações Especiais',
+      key: 'special_actions' as keyof ContaReceber,
+      header: 'Gerenciamento',
       render: (value: any, item: ContaReceber) => {
-        // Verifica se é parte de uma série de parcelas (incluindo primeira parcela)
+        // Verifica se é recorrente
+        if (item.eh_recorrente) {
+          return (
+            <button
+              onClick={() => handleRecurrenceManagement(item)}
+              className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+              title="Gerenciar Recorrência"
+            >
+              Gerenciar Recorrência
+            </button>
+          );
+        }
+        
+        // Verifica se é parte de uma série de parcelas
         const isInstallment = item.eh_parcelado || item.lancamento_pai_id || item.total_parcelas > 1;
         if (!isInstallment) return '-';
         
@@ -378,6 +412,38 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     }
   };
 
+  const handleRecurrenceManagement = async (conta: ContaReceber) => {
+    try {
+      // Find all related recurrence records
+      const parentId = conta.lancamento_pai_id || conta.id;
+      
+      // Get all recurrence records from the same series
+      const allContas = await contasReceberServiceExtended.getAllWithRelations();
+      const relatedRecords = allContas.filter(c => 
+        (c.id === parentId || c.lancamento_pai_id === parentId) && c.eh_recorrente
+      ).sort((a, b) => {
+        const aDate = new Date(a.data_vencimento);
+        const bDate = new Date(b.data_vencimento);
+        return aDate.getTime() - bDate.getTime();
+      });
+      
+      if (relatedRecords.length === 0) {
+        showError('Nenhum registro de recorrência encontrado para gerenciar');
+        return;
+      }
+      
+      // For now, use the same modal but with different context
+      // In the future, this could be a specialized recurrence modal
+      setMassCancellationModal({
+        isOpen: true,
+        records: relatedRecords,
+        parentId
+      });
+    } catch (error) {
+      console.error('Erro ao carregar registros de recorrência:', error);
+      showError('Erro ao carregar registros de recorrência para gerenciamento');
+    }
+  };
   const handleInstallmentSave = async (installments: any[]) => {
     if (installments.length === 0) return;
     

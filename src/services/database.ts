@@ -312,8 +312,8 @@ export const contasPagarServiceExtended = {
       return { canDelete: false, reason: 'Registro não encontrado' };
     }
 
-    // Rule 1: Check if it's part of installments or recurring series (including first installment)
-    if (conta.eh_parcelado || conta.eh_recorrente || conta.lancamento_pai_id || conta.total_parcelas > 1) {
+    // Rule 1: Check if it's part of installments series (including first installment)
+    if (conta.eh_parcelado || conta.lancamento_pai_id || conta.total_parcelas > 1) {
       // Find all related records
       const parentId = conta.lancamento_pai_id || conta.id;
       
@@ -337,6 +337,31 @@ export const contasPagarServiceExtended = {
       };
     }
 
+    // Rule 2: Check if it's part of recurring series (including first occurrence)
+    if (conta.eh_recorrente) {
+      // Find all related recurrence records
+      const parentId = conta.lancamento_pai_id || conta.id;
+      
+      const { data: relatedRecords, error: relatedError } = await supabase
+        .from('contas_pagar')
+        .select('*')
+        .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+        .eq('eh_recorrente', true)
+        .is('deleted_at', null)
+        .order('data_vencimento', { ascending: true });
+        
+      if (relatedError) {
+        return { canDelete: false, reason: 'Erro ao verificar registros de recorrência relacionados' };
+      }
+      
+      return { 
+        canDelete: false, 
+        reason: 'Registros recorrentes devem ser cancelados em massa',
+        requiresMassModal: true,
+        parentId,
+        relatedRecords: relatedRecords || []
+      };
+    }
     // Simple record - can be deleted normally
     return { canDelete: true };
   },
@@ -533,8 +558,8 @@ export const contasReceberServiceExtended = {
       return { canDelete: false, reason: 'Registro não encontrado' };
     }
 
-    // Rule 1: Check if it's part of installments or recurring series (including first installment)
-    if (conta.eh_parcelado || conta.eh_recorrente || conta.lancamento_pai_id || conta.total_parcelas > 1) {
+    // Rule 1: Check if it's part of installments series (including first installment)
+    if (conta.eh_parcelado || conta.lancamento_pai_id || conta.total_parcelas > 1) {
       // Find all related records
       const parentId = conta.lancamento_pai_id || conta.id;
       
@@ -551,13 +576,38 @@ export const contasReceberServiceExtended = {
       
       return { 
         canDelete: false, 
-        reason: 'Registros parcelados/recorrentes devem ser cancelados em massa',
+        reason: 'Registros parcelados devem ser cancelados em massa',
         requiresMassModal: true,
         parentId,
         relatedRecords: relatedRecords || []
       };
     }
 
+    // Rule 2: Check if it's part of recurring series (including first occurrence)
+    if (conta.eh_recorrente) {
+      // Find all related recurrence records
+      const parentId = conta.lancamento_pai_id || conta.id;
+      
+      const { data: relatedRecords, error: relatedError } = await supabase
+        .from('contas_receber')
+        .select('*')
+        .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+        .eq('eh_recorrente', true)
+        .is('deleted_at', null)
+        .order('data_vencimento', { ascending: true });
+        
+      if (relatedError) {
+        return { canDelete: false, reason: 'Erro ao verificar registros de recorrência relacionados' };
+      }
+      
+      return { 
+        canDelete: false, 
+        reason: 'Registros recorrentes devem ser cancelados em massa',
+        requiresMassModal: true,
+        parentId,
+        relatedRecords: relatedRecords || []
+      };
+    }
     // Simple record - can be deleted normally
     return { canDelete: true };
   },
