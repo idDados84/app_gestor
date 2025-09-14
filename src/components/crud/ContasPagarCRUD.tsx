@@ -7,6 +7,7 @@ import Select from '../ui/Select';
 import ElectronicDataModal from '../modals/ElectronicDataModal';
 import MassCancellationModal from '../modals/MassCancellationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
+import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
 import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
@@ -77,6 +78,13 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     futureRecords: ContaPagar[];
   }>({ isOpen: false, originalRecord: null, updatedRecord: null, futureRecords: [] });
   const [recurrenceReplicationLoading, setRecurrenceReplicationLoading] = useState(false);
+  const [installmentReplicationModal, setInstallmentReplicationModal] = useState<{
+    isOpen: boolean;
+    originalRecord: ContaPagar | null;
+    updatedRecord: ContaPagar | null;
+    futureInstallments: ContaPagar[];
+  }>({ isOpen: false, originalRecord: null, updatedRecord: null, futureInstallments: [] });
+  const [installmentReplicationLoading, setInstallmentReplicationLoading] = useState(false);
   const { showError: internalShowError, showSuccess: internalShowSuccess } = useToast();
   
   // Use external toast functions if provided, otherwise use internal ones
@@ -590,9 +598,13 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       if (editingConta) {
         const updatedRecord = await contasPagarServiceExtended.update(editingConta.id, filteredData);
         
-        // Check if this is a recurrent record and if we should show replication modal
+        // Check if this is a recurrent record and if we should show recurrence replication modal
         if (originalRecord?.eh_recorrente && updatedRecord) {
           await checkForRecurrenceReplication(originalRecord, updatedRecord);
+        }
+        // Check if this is an installment record and if we should show installment replication modal
+        else if ((originalRecord?.eh_parcelado || originalRecord?.lancamento_pai_id || originalRecord?.total_parcelas > 1) && updatedRecord) {
+          await checkForInstallmentReplication(originalRecord, updatedRecord);
         }
       } else {
         await contasPagarServiceExtended.create(filteredData);
@@ -637,13 +649,50 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     }
   };
 
+  const checkForInstallmentReplication = async (originalRecord: ContaPagar, updatedRecord: ContaPagar) => {
+    try {
+      // Find all future installments from the same series
+      const parentId = originalRecord.lancamento_pai_id || originalRecord.id;
+      const allContas = await contasPagarServiceExtended.getAllWithRelations();
+      
+      const futureInstallments = allContas.filter(c => {
+        // Same series
+        const isSameSeries = c.id === parentId || c.lancamento_pai_id === parentId;
+        // Is installment (not recurrent)
+        const isInstallment = !c.eh_recorrente && (c.eh_parcelado || c.lancamento_pai_id || c.total_parcelas > 1);
+        // Is future (higher installment number)
+        const currentInstallmentNum = updatedRecord.numero_parcela || 1;
+        const thisInstallmentNum = c.numero_parcela || 1;
+        const isFuture = thisInstallmentNum > currentInstallmentNum;
+        // Is open (not processed)
+        const isOpen = c.status.toLowerCase() !== 'pago' && c.status.toLowerCase() !== 'cancelado';
+        
+        return isSameSeries && isInstallment && isFuture && isOpen;
+      }).sort((a, b) => (a.numero_parcela || 1) - (b.numero_parcela || 1));
+      
+      // Only show modal if there are future installments and there are actual changes
+      if (futureInstallments.length > 0 && hasSignificantChanges(originalRecord, updatedRecord)) {
+        setInstallmentReplicationModal({
+          isOpen: true,
+          originalRecord,
+          updatedRecord,
+          futureInstallments
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao verificar replicação de parcelas:', error);
+    }
+  };
+
   const hasSignificantChanges = (original: ContaPagar, updated: ContaPagar): boolean => {
     return (
       original.data_vencimento !== updated.data_vencimento ||
       original.valor !== updated.valor ||
       original.descricao !== updated.descricao ||
       original.categoria_id !== updated.categoria_id ||
-      original.observacoes !== updated.observacoes
+      original.observacoes !== updated.observacoes ||
+      original.forma_cobranca_id !== updated.forma_cobranca_id ||
+      original.conta_cobranca_id !== updated.conta_cobranca_id
     );
   };
 
@@ -701,6 +750,72 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       showError('Erro ao aplicar alterações aos registros recorrentes');
     } finally {
       setRecurrenceReplicationLoading(false);
+    }
+  };
+
+  const handleInstallmentReplication = async (selectedChanges: any[]) => {
+    if (selectedChanges.length === 0 || !installmentReplicationModal.futureInstallments.length) return;
+    
+    setInstallmentReplicationLoading(true);
+    try {
+      const { originalRecord, updatedRecord, futureInstallments } = installmentReplicationModal;
+      
+      for (const futureInstallment of futureInstallments) {
+        const updates: any = {};
+        
+        for (const change of selectedChanges) {
+          switch (change.field) {
+            case 'data_vencimento':
+              // Maintain installment pattern but update the day
+              const originalDate = new Date(originalRecord!.data_vencimento);
+              const updatedDate = new Date(updatedRecord!.data_vencimento);
+              const futureDate = new Date(futureInstallment.data_vencimento);
+              
+              // Calculate day difference and apply to future installment
+              const dayDifference = updatedDate.getDate() - originalDate.getDate();
+              futureDate.setDate(futureDate.getDate() + dayDifference);
+              updates.data_vencimento = futureDate.toISOString().split('T')[0];
+              break;
+              
+            case 'valor':
+              updates.valor = updatedRecord!.valor;
+              break;
+              
+            case 'descricao':
+              updates.descricao = updatedRecord!.descricao;
+              break;
+              
+            case 'categoria_id':
+              updates.categoria_id = updatedRecord!.categoria_id;
+              break;
+              
+            case 'observacoes':
+              updates.observacoes = updatedRecord!.observacoes;
+              break;
+              
+            case 'forma_cobranca_id':
+              updates.forma_cobranca_id = updatedRecord!.forma_cobranca_id;
+              break;
+              
+            case 'conta_cobranca_id':
+              updates.conta_cobranca_id = updatedRecord!.conta_cobranca_id;
+              break;
+          }
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await contasPagarServiceExtended.update(futureInstallment.id, updates);
+        }
+      }
+      
+      showSuccess(`Alterações aplicadas a ${futureInstallments.length} parcela(s) futura(s)`);
+      setInstallmentReplicationModal({ isOpen: false, originalRecord: null, updatedRecord: null, futureInstallments: [] });
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao replicar alterações nas parcelas:', error);
+      showError('Erro ao aplicar alterações às parcelas futuras');
+    } finally {
+      setInstallmentReplicationLoading(false);
     }
   };
 
@@ -1048,6 +1163,17 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
         futureRecords={recurrenceReplicationModal.futureRecords}
         type="pagar"
         loading={recurrenceReplicationLoading}
+      />
+      
+      <InstallmentReplicationModal
+        isOpen={installmentReplicationModal.isOpen}
+        onClose={() => setInstallmentReplicationModal({ isOpen: false, originalRecord: null, updatedRecord: null, futureInstallments: [] })}
+        onConfirm={handleInstallmentReplication}
+        originalRecord={installmentReplicationModal.originalRecord!}
+        updatedRecord={installmentReplicationModal.updatedRecord!}
+        futureInstallments={installmentReplicationModal.futureInstallments}
+        type="pagar"
+        loading={installmentReplicationLoading}
       />
       
       <ConfirmDialog
