@@ -579,7 +579,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       // Filter out properties with empty string values, but preserve null values and boolean/number fields
       const filteredData = Object.fromEntries(
         Object.entries(dataToSubmit).filter(([key, value]) => {
-          // Always include boolean and number fields
+          // Always include boolean and number fields (including 0 and 1)
           if (typeof value === 'boolean' || typeof value === 'number') {
             return true;
           }
@@ -591,8 +591,8 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
           if (typeof value === 'object' && value !== null) {
             return true;
           }
-          // Only exclude empty strings
-          return value !== '';
+          // Only exclude empty strings and undefined values
+          return value !== '' && value !== undefined;
         })
       );
       
