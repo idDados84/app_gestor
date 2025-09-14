@@ -131,10 +131,9 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
           };
           
           const periodoLabel = periodoMap[periodicidade] || periodicidade;
-          const frequenciaLabel = frequencia > 1 ? ` (${frequencia}x)` : '';
-          const terminoLabel = termino ? `/${termino}x` : '/∞';
+          const terminoLabel = termino ? `/1-${termino}` : '/1-∞';
           
-          return `${periodoLabel}${frequenciaLabel}${terminoLabel}`;
+          return `${periodoLabel}${terminoLabel}`;
         }
         
         // Verifica se é parte de uma série de parcelas
