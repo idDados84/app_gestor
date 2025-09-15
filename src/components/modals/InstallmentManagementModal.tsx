@@ -140,26 +140,24 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
     
     const totalAmount = originalTotal;
     const numInstallments = installments.length;
-    const baseAmount = Math.floor((totalAmount * 100) / numInstallments) / 100; // Round down to 2 decimals
-    const remainder = totalAmount - (baseAmount * numInstallments);
     
-    const updatedInstallments = installments.map((inst, index) => {
-      let amount = baseAmount;
-      
-      // Distribute remainder to first installments (round up strategy)
-      if (index < Math.round(remainder * 100)) {
-        amount += 0.01;
-      }
-      
-      return { ...inst, amount };
-    });
+    if (numInstallments === 0) return;
     
-    // Ensure last installment gets any remaining difference
-    const newTotal = updatedInstallments.reduce((sum, inst) => sum + inst.amount, 0);
-    const finalDifference = totalAmount - newTotal;
-    if (Math.abs(finalDifference) > 0.001) {
-      updatedInstallments[updatedInstallments.length - 1].amount += finalDifference;
+    const updatedInstallments = [...installments];
+    let valorRestante = totalAmount;
+    
+    // Para as primeiras N-1 parcelas: arredondar para cima para números inteiros
+    for (let i = 0; i < numInstallments - 1; i++) {
+      const parcelasRestantes = numInstallments - i;
+      const valorMedio = valorRestante / parcelasRestantes;
+      const valorParcela = Math.ceil(valorMedio); // Arredonda para cima para número inteiro
+      
+      updatedInstallments[i].amount = valorParcela;
+      valorRestante -= valorParcela;
     }
+    
+    // A última parcela recebe o valor restante exato (pode ter centavos)
+    updatedInstallments[numInstallments - 1].amount = Math.round(valorRestante * 100) / 100;
     
     setInstallments(updatedInstallments);
   };
