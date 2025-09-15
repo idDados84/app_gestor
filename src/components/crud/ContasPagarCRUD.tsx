@@ -116,12 +116,18 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     data_pagamento: '',
     observacoes: '',
     numero_parcela: 1,
+    total_parcelas: 1,
+    eh_parcelado: false,
     lancamento_pai_id: '',
     eh_recorrente: false,
     periodicidade: 'mensal',
     frequencia_recorrencia: 1,
     data_inicio_recorrencia: '',
     termino_apos_ocorrencias: 0,
+    n_docto_origem: '',
+    sku_parcela: '',
+    intervalo_ini: 0,
+    intervalo_rec: 30,
   });
 
   const columns = [
@@ -341,12 +347,18 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       data_pagamento: '',
       observacoes: '',
       numero_parcela: 1,
+      total_parcelas: 1,
+      eh_parcelado: false,
       lancamento_pai_id: '',
       eh_recorrente: false,
       periodicidade: 'mensal',
       frequencia_recorrencia: 1,
       data_inicio_recorrencia: '',
       termino_apos_ocorrencias: 0,
+      n_docto_origem: '',
+      sku_parcela: '',
+      intervalo_ini: 0,
+      intervalo_rec: 30,
     });
     setCurrentElectronicData(null);
     setIsModalOpen(true);
@@ -377,12 +389,18 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       data_pagamento: conta.data_pagamento || '',
       observacoes: conta.observacoes || '',
       numero_parcela: conta.numero_parcela || 1,
+      total_parcelas: conta.total_parcelas || 1,
+      eh_parcelado: conta.eh_parcelado || false,
       lancamento_pai_id: conta.lancamento_pai_id || '',
       eh_recorrente: conta.eh_recorrente || false,
       periodicidade: conta.periodicidade || 'mensal',
       frequencia_recorrencia: conta.frequencia_recorrencia || 1,
       data_inicio_recorrencia: formatDateForInput(conta.data_inicio_recorrencia),
       termino_apos_ocorrencias: conta.termino_apos_ocorrencias || 0,
+      n_docto_origem: conta.n_docto_origem || '',
+      sku_parcela: conta.sku_parcela || '',
+      intervalo_ini: conta.intervalo_ini || 0,
+      intervalo_rec: conta.intervalo_rec || 30,
     });
     setCurrentElectronicData(conta.dados_ele || null);
     setIsModalOpen(true);
