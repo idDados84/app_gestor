@@ -1153,7 +1153,7 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
           </div>
           
           {/* Resumo Financeiro */}
-          <div className="col-span-2 mt-4">
+          <div className="mt-4">
             <FinancialSummary
               values={{
                 valor_operacao: parseFloat(formData.valor_operacao) || 0,
@@ -1164,6 +1164,9 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
                 valor_abto: parseFloat(formData.valor_abto) || 0,
                 valor_pagto: parseFloat(formData.valor_pagto) || 0
               }}
+              isInstallment={formData.eh_parcelado}
+              totalInstallments={formData.eh_parcelado ? formData.total_parcelas : 1}
+              startDate={formData.data_vencimento}
             />
           </div>
           

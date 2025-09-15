@@ -1175,6 +1175,9 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
                 valor_abto: parseFloat(formData.valor_abto) || 0,
                 valor_pagto: parseFloat(formData.valor_pagto) || 0
               }}
+              isInstallment={formData.eh_parcelado}
+              totalInstallments={formData.eh_parcelado ? formData.total_parcelas : 1}
+              startDate={formData.data_vencimento}
             />
           </div>
           
