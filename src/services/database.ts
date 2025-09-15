@@ -641,6 +641,23 @@ export const contasReceberServiceExtended = {
     
     const createdItems: ContaReceber[] = [];
 
+    // Calculate installment values using new financial structure
+    const calculateInstallmentValues = (valorFinanceiro: number, totalParcelas: number, hasEntrada: boolean = false) => {
+      const parcelasParaDistribuir = hasEntrada ? totalParcelas - 1 : totalParcelas;
+      if (parcelasParaDistribuir <= 0) return [];
+      
+      const valorBase = Math.floor((valorFinanceiro * 100) / parcelasParaDistribuir) / 100;
+      const resto = valorFinanceiro - (valorBase * parcelasParaDistribuir);
+      const centavosResto = Math.round(resto * 100);
+      
+      const valores = [];
+      for (let i = 0; i < parcelasParaDistribuir; i++) {
+        const valorParcela = i < centavosResto ? valorBase + 0.01 : valorBase;
+        valores.push(Number(valorParcela.toFixed(2)));
+      }
+      
+      return valores;
+    };
     // Generate SKU for installments if needed
     const generateSKU = (installmentNumber: number, totalInstallments: number, participantDoc?: string) => {
       if (!item.tipo_documento_id || !item.n_docto_origem) return undefined;
@@ -691,18 +708,46 @@ export const contasReceberServiceExtended = {
     }
     // Handle installments (if not recurring)
     else if (item.eh_parcelado && item.total_parcelas && item.total_parcelas > 1) {
-      const valorPorParcela = item.valor / item.total_parcelas;
+      // Calculate installment values using new financial structure
+      const valorFinanceiro = item.valor_financeiro || item.valor_operacao;
+      const hasEntrada = item.numero_parcela === 0 || (item.valor_pagto > 0);
+      const valoresParcelas = calculateInstallmentValues(valorFinanceiro, item.total_parcelas, hasEntrada);
+      
       let parentId: string | undefined = item.lancamento_pai_id;
 
-      for (let i = 1; i <= item.total_parcelas; i++) {
+      // Create entrada (parcela 0) if applicable
+      if (hasEntrada && item.valor_pagto > 0) {
+        const entradaItem = {
+          ...item,
+          numero_parcela: 0,
+          valor_parcela: item.valor_pagto,
+          data_vencimento: item.data_vencimento,
+          eh_parcelado: false,
+          eh_recorrente: false,
+          lancamento_pai_id: parentId,
+        };
+
+        const { data: createdEntrada, error } = await supabase.from('contas_receber').insert([entradaItem]).select().single();
+        if (error) throw error;
+        createdItems.push(createdEntrada);
+
+        if (!parentId) {
+          parentId = createdEntrada.id;
+        }
+      }
+
+      // Create remaining installments
+      for (let i = 0; i < valoresParcelas.length; i++) {
+        const parcelaNumero = hasEntrada ? i + 1 : i + 1;
         const installmentDate = parseDateFromYYYYMMDD(item.data_vencimento);
-        // Assuming monthly installments for simplicity, adjust as needed
-        installmentDate.setMonth(installmentDate.getMonth() + (i - 1));
+        // Monthly installments starting from base date
+        const monthsToAdd = hasEntrada ? i + 1 : i;
+        installmentDate.setMonth(installmentDate.getMonth() + monthsToAdd);
 
         const installmentItem = {
           ...item,
-          valor: valorPorParcela,
-          numero_parcela: i,
+          valor_parcela: valoresParcelas[i],
+          numero_parcela: parcelaNumero,
           total_parcelas: item.total_parcelas,
           data_vencimento: formatDateToYYYYMMDD(installmentDate),
           eh_parcelado: false, // Subsequent items are not parcelled themselves
@@ -714,7 +759,7 @@ export const contasReceberServiceExtended = {
         if (error) throw error;
         createdItems.push(createdInstallment);
 
-        if (i === 1 && !parentId) {
+        if (i === 0 && !parentId && !hasEntrada) {
           parentId = createdInstallment.id; // Set the first created installment's ID as the parent for subsequent installments
         }
       }
@@ -729,7 +774,7 @@ export const contasReceberServiceExtended = {
   },
 
   // Update method remains largely the same, as updating a series is complex and out of scope
-  async update(id: string, updates: Partial<Omit<ContaReceber, 'id' | 'created_at' | 'updated_at' | 'empresas' | 'participantes' | 'categorias' | 'departamentos' | 'formas_cobranca'>>): Promise<ContaReceber> {
+  async update(id: string, updates: Partial<Omit<ContaReceber, 'id' | 'created_at' | 'updated_at' | 'empresas' | 'participantes' | 'categorias' | 'departamentos' | 'formas_cobranca' | 'contas_financeiras' | 'tipos_documentos'>>): Promise<ContaReceber> {
     if (!isSupabaseConfigured()) {
       throwConfigError();
     }

@@ -128,7 +128,16 @@ export interface ContaPagar {
   projetos?: string[];
   eh_vencto_fixo?: boolean;
   descricao: string;
-  valor: number;
+  // Campos financeiros expandidos
+  valor_operacao: number;      // Valor base da operação
+  valor_juros: number;         // Juros aplicados
+  valor_multas: number;        // Multas aplicadas
+  valor_atualizacao: number;   // Correções monetárias
+  valor_descontos: number;     // Descontos concedidos
+  valor_abto: number;          // Abatimentos
+  valor_pagto: number;         // Pagamentos realizados
+  valor_financeiro: number;    // Saldo calculado automaticamente
+  valor_parcela: number;       // Valor individual da parcela
   status: 'pendente' | 'pago' | 'cancelado';
   data_vencimento: string;
   data_pagamento?: string;
@@ -174,7 +183,16 @@ export interface ContaReceber {
   projetos?: string[];
   eh_vencto_fixo?: boolean;
   descricao: string;
-  valor: number;
+  // Campos financeiros expandidos
+  valor_operacao: number;      // Valor base da operação
+  valor_juros: number;         // Juros aplicados
+  valor_multas: number;        // Multas aplicadas
+  valor_atualizacao: number;   // Correções monetárias
+  valor_descontos: number;     // Descontos concedidos
+  valor_abto: number;          // Abatimentos
+  valor_pagto: number;         // Pagamentos realizados
+  valor_financeiro: number;    // Saldo calculado automaticamente
+  valor_parcela: number;       // Valor individual da parcela
   status: 'pendente' | 'recebido' | 'cancelado';
   data_vencimento: string;
   data_recebimento?: string;
