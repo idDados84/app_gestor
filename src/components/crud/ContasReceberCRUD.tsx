@@ -688,7 +688,14 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
   const hasSignificantChanges = (original: ContaReceber, updated: ContaReceber): boolean => {
     return (
       original.data_vencimento !== updated.data_vencimento ||
-      original.valor !== updated.valor ||
+      original.valor_operacao !== updated.valor_operacao ||
+      original.valor_juros !== updated.valor_juros ||
+      original.valor_multas !== updated.valor_multas ||
+      original.valor_atualizacao !== updated.valor_atualizacao ||
+      original.valor_descontos !== updated.valor_descontos ||
+      original.valor_abto !== updated.valor_abto ||
+      original.valor_pagto !== updated.valor_pagto ||
+      original.valor_parcela !== updated.valor_parcela ||
       original.descricao !== updated.descricao ||
       original.categoria_id !== updated.categoria_id ||
       original.observacoes !== updated.observacoes ||
