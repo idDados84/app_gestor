@@ -589,7 +589,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         valor_multas: parseFloat(formData.valor_multas) || 0,
         valor_atualizacao: parseFloat(formData.valor_atualizacao) || 0,
         valor_descontos: parseFloat(formData.valor_descontos) || 0,
-        valor_abto: parseFloat(formData.valor_abto) || 0,
+        valor_abto: formData.valor_abto ? parseFloat(formData.valor_abto) : undefined,
         valor_pagto: parseFloat(formData.valor_pagto) || 0,
         valor_parcela: parseFloat(formData.valor_parcela) || parseFloat(formData.valor_operacao) || 0,
         categoria_id: formData.categoria_id || null,

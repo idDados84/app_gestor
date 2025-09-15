@@ -527,7 +527,14 @@ export const contasReceberServiceExtended = {
     const { data, error } = await supabase
       .from('contas_receber')
       .select(`
-        *,
+        id, empresa_id, cliente_id, categoria_id, departamento_id, forma_cobranca_id,
+        conta_cobranca_id, tipo_documento_id, descricao, valor_operacao, valor_juros,
+        valor_multas, valor_atualizacao, valor_descontos, valor_pagto, valor_parcela,
+        status, data_vencimento, data_recebimento, observacoes, created_at, updated_at,
+        deleted_at, dados_ele, id_autorizacao, eh_parcelado, total_parcelas, numero_parcela,
+        lancamento_pai_id, eh_recorrente, periodicidade, frequencia_recorrencia,
+        data_inicio_recorrencia, termino_apos_ocorrencias, n_docto_origem, n_doctos_ref,
+        projetos, sku_parcela, intervalo_ini, intervalo_rec, eh_vencto_fixo,
         empresas(*), 
         participantes!contas_receber_cliente_id_fkey(*), 
         categorias(*), 

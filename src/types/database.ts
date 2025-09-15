@@ -127,7 +127,7 @@ export interface ContaPagar {
   valor_multas: number;        // Multas por atraso/inadimplência
   valor_atualizacao: number;   // Correção monetária/indexação
   valor_descontos: number;     // Descontos concedidos
-  valor_abto: number;          // Abatimentos (compensações/devoluções)
+  valor_abto?: number;         // Abatimentos (compensações/devoluções) - optional as may not exist in DB
   valor_pagto: number;         // Pagamentos já realizados
   valor_financeiro: number;    // Saldo líquido calculado automaticamente
   valor_parcela: number;       // Valor individual da parcela
@@ -179,7 +179,7 @@ export interface ContaReceber {
   valor_multas: number;        // Multas por atraso/inadimplência
   valor_atualizacao: number;   // Correção monetária/indexação
   valor_descontos: number;     // Descontos concedidos
-  valor_abto: number;          // Abatimentos (compensações/devoluções)
+  valor_abto?: number;         // Abatimentos (compensações/devoluções) - optional as may not exist in DB
   valor_pagto: number;         // Pagamentos já realizados
   valor_financeiro: number;    // Saldo líquido calculado automaticamente
   valor_parcela: number;       // Valor individual da parcela
