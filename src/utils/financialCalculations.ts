@@ -30,35 +30,29 @@ export function calculateValorFinanceiro(values: FinancialValues): number {
 
 /**
  * Calcula a distribuição de parcelas com entrada (parcela 0)
- * Implementa a lógica onde as primeiras parcelas recebem valores maiores
+ * Implementa a lógica de arredondamento para cima nas parcelas intermediárias
+ * e ajuste exato na última parcela para totalizar o valor_financeiro
  * Garante que a soma das parcelas seja exatamente igual ao valor financeiro
  */
 export function calculateInstallmentValues(valorFinanceiro: number, totalParcelas: number, hasEntrada: boolean = false): number[] {
   const parcelasParaDistribuir = hasEntrada ? totalParcelas - 1 : totalParcelas;
   if (parcelasParaDistribuir <= 0) return [];
   
-  // Converter para centavos para evitar problemas de ponto flutuante
-  const valorEmCentavos = Math.round(valorFinanceiro * 100);
-  const valorBaseCentavos = Math.floor(valorEmCentavos / parcelasParaDistribuir);
-  const restoCentavos = valorEmCentavos % parcelasParaDistribuir;
-  
   const valores = [];
-  for (let i = 0; i < parcelasParaDistribuir; i++) {
-    // As primeiras parcelas recebem os centavos extras do resto da divisão
-    const valorParcela = i < restoCentavos ? valorBaseCentavos + 1 : valorBaseCentavos;
-    valores.push(valorParcela / 100); // Converter de volta para reais
+  let valorRestante = valorFinanceiro;
+  
+  // Para as primeiras N-1 parcelas: arredondar para cima para números inteiros
+  for (let i = 0; i < parcelasParaDistribuir - 1; i++) {
+    const parcelasRestantes = parcelasParaDistribuir - i;
+    const valorMedio = valorRestante / parcelasRestantes;
+    const valorParcela = Math.ceil(valorMedio); // Arredonda para cima para número inteiro
+    
+    valores.push(valorParcela);
+    valorRestante -= valorParcela;
   }
   
-  // Validação: garantir que a soma seja exatamente igual ao valor financeiro
-  const somaCalculada = valores.reduce((acc, valor) => acc + valor, 0);
-  const diferenca = Math.abs(somaCalculada - valorFinanceiro);
-  
-  if (diferenca > 0.01) {
-    console.warn(`Diferença na distribuição de parcelas: ${diferenca.toFixed(2)}`);
-    // Ajustar a última parcela para corrigir pequenas diferenças de arredondamento
-    const ajuste = valorFinanceiro - somaCalculada;
-    valores[valores.length - 1] += ajuste;
-  }
+  // A última parcela recebe o valor restante exato (pode ter centavos)
+  valores.push(Math.round(valorRestante * 100) / 100); // Arredonda para 2 casas decimais
   
   return valores;
 }
@@ -73,8 +67,8 @@ export function validateInstallmentSum(parcelas: number[], valorFinanceiro: numb
 }
 
 /**
- * Exemplo prático atualizado: R$ 897,00 (valor_financeiro) parcelado em 5x
- * Demonstra a distribuição correta com arredondamento
+ * Exemplo prático: R$ 897,00 (valor_financeiro) parcelado em 5x
+ * Demonstra a nova lógica de arredondamento para cima e ajuste na última parcela
  */
 export function exemploCalculoFinanceiro(): {
   valores: FinancialValues;
@@ -99,7 +93,7 @@ export function exemploCalculoFinanceiro(): {
     ...parcelasValores.map((valor, index) => ({
       parcela: index + 1,
       valor,
-      descricao: `Parcela ${index + 1}/5 (valor_financeiro: R$ ${valorFinanceiro.toFixed(2)})`
+      descricao: `Parcela ${index + 1}/5 - ${index < 4 ? 'Arredondada para cima' : 'Valor exato restante'}`
     }))
   ];
 
