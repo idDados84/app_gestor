@@ -238,7 +238,7 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
                     </p>
                     
                     {/* Value comparison for specific fields */}
-                    {change.field === 'valor' && (
+                    {change.field === 'valor_parcela' && (
                       <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
                         <span className="line-through text-red-600">
                           R$ {change.oldValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
