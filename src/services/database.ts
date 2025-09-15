@@ -774,7 +774,7 @@ export const contasReceberServiceExtended = {
   },
 
   // Update method remains largely the same, as updating a series is complex and out of scope
-  async update(id: string, updates: Partial<Omit<ContaReceber, 'id' | 'created_at' | 'updated_at' | 'empresas' | 'participantes' | 'categorias' | 'departamentos' | 'formas_cobranca' | 'contas_financeiras' | 'tipos_documentos'>>): Promise<ContaReceber> {
+  async update(id: string, updates: Partial<Omit<ContaReceber, 'id' | 'created_at' | 'updated_at' | 'empresas' | 'participantes' | 'categorias' | 'departamentos' | 'formas_cobranca'>>): Promise<ContaReceber> {
     if (!isSupabaseConfigured()) {
       throwConfigError();
     }

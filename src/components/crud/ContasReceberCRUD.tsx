@@ -915,22 +915,10 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
             />
             
             <Input
-              label="Valor da Operação"
+              label="Valor"
               type="number"
-              value={formData.valor_operacao}
-              onChange={(e) => {
-                const newFormData = { ...formData, valor_operacao: e.target.value };
-                // Recalcular valor_financeiro automaticamente
-                const valorFinanceiro = (parseFloat(newFormData.valor_operacao) || 0) +
-                                      (parseFloat(newFormData.valor_juros) || 0) +
-                                      (parseFloat(newFormData.valor_multas) || 0) +
-                                      (parseFloat(newFormData.valor_atualizacao) || 0) -
-                                      (parseFloat(newFormData.valor_descontos) || 0) -
-                                      (parseFloat(newFormData.valor_abto) || 0) -
-                                      (parseFloat(newFormData.valor_pagto) || 0);
-                newFormData.valor_financeiro = Math.max(0, valorFinanceiro).toString();
-                setFormData(newFormData);
-              }}
+              value={formData.valor}
+              onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
               required
               step="0.01"
               min="0"
