@@ -140,6 +140,13 @@ export interface ContaPagar {
   frequencia_recorrencia?: number;
   data_inicio_recorrencia?: string; // Date string
   termino_apos_ocorrencias?: number;
+  n_docto_origem?: string;
+  n_doctos_ref?: string[];
+  projetos?: string[];
+  sku_parcela?: string;
+  intervalo_ini?: number;
+  intervalo_rec?: number;
+  eh_vencto_fixo?: boolean;
   empresas?: Empresa;
   participantes?: Participante;
   categorias?: Categoria;
@@ -176,6 +183,13 @@ export interface ContaReceber {
   frequencia_recorrencia?: number;
   data_inicio_recorrencia?: string; // Date string
   termino_apos_ocorrencias?: number;
+  n_docto_origem?: string;
+  n_doctos_ref?: string[];
+  projetos?: string[];
+  sku_parcela?: string;
+  intervalo_ini?: number;
+  intervalo_rec?: number;
+  eh_vencto_fixo?: boolean;
   empresas?: Empresa;
   participantes?: Participante;
   categorias?: Categoria;

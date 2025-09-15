@@ -708,46 +708,19 @@ export const contasReceberServiceExtended = {
     }
     // Handle installments (if not recurring)
     else if (item.eh_parcelado && item.total_parcelas && item.total_parcelas > 1) {
-      // Calculate installment values using new financial structure
-      const valorFinanceiro = item.valor_financeiro || item.valor_operacao;
-      const hasEntrada = item.numero_parcela === 0 || (item.valor_pagto > 0);
-      const valoresParcelas = calculateInstallmentValues(valorFinanceiro, item.total_parcelas, hasEntrada);
+      const valorPorParcela = item.valor / item.total_parcelas;
       
       let parentId: string | undefined = item.lancamento_pai_id;
 
-      // Create entrada (parcela 0) if applicable
-      if (hasEntrada && item.valor_pagto > 0) {
-        const entradaItem = {
-          ...item,
-          numero_parcela: 0,
-          valor_parcela: item.valor_pagto,
-          data_vencimento: item.data_vencimento,
-          eh_parcelado: false,
-          eh_recorrente: false,
-          lancamento_pai_id: parentId,
-        };
-
-        const { data: createdEntrada, error } = await supabase.from('contas_receber').insert([entradaItem]).select().single();
-        if (error) throw error;
-        createdItems.push(createdEntrada);
-
-        if (!parentId) {
-          parentId = createdEntrada.id;
-        }
-      }
-
-      // Create remaining installments
-      for (let i = 0; i < valoresParcelas.length; i++) {
-        const parcelaNumero = hasEntrada ? i + 1 : i + 1;
+      for (let i = 1; i <= item.total_parcelas; i++) {
         const installmentDate = parseDateFromYYYYMMDD(item.data_vencimento);
-        // Monthly installments starting from base date
-        const monthsToAdd = hasEntrada ? i + 1 : i;
-        installmentDate.setMonth(installmentDate.getMonth() + monthsToAdd);
+        // Assuming monthly installments for simplicity, adjust as needed
+        installmentDate.setMonth(installmentDate.getMonth() + (i - 1));
 
         const installmentItem = {
           ...item,
-          valor_parcela: valoresParcelas[i],
-          numero_parcela: parcelaNumero,
+          valor: valorPorParcela,
+          numero_parcela: i,
           total_parcelas: item.total_parcelas,
           data_vencimento: formatDateToYYYYMMDD(installmentDate),
           eh_parcelado: false, // Subsequent items are not parcelled themselves
@@ -759,7 +732,7 @@ export const contasReceberServiceExtended = {
         if (error) throw error;
         createdItems.push(createdInstallment);
 
-        if (i === 0 && !parentId && !hasEntrada) {
+        if (i === 1 && !parentId) {
           parentId = createdInstallment.id; // Set the first created installment's ID as the parent for subsequent installments
         }
       }

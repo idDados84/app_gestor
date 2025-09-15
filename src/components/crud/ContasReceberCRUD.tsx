@@ -121,6 +121,11 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     intervalo_ini: 0,
     intervalo_rec: 30,
     eh_vencto_fixo: false,
+    n_docto_origem: '',
+    sku_parcela: '',
+    intervalo_ini: 0,
+    intervalo_rec: 30,
+    eh_vencto_fixo: false,
   });
 
   const columns = [
@@ -347,6 +352,11 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       intervalo_ini: 0,
       intervalo_rec: 30,
       eh_vencto_fixo: false,
+      n_docto_origem: '',
+      sku_parcela: '',
+      intervalo_ini: 0,
+      intervalo_rec: 30,
+      eh_vencto_fixo: false,
     });
     setCurrentElectronicData(null);
     setIsModalOpen(true);
@@ -379,6 +389,11 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       frequencia_recorrencia: conta.frequencia_recorrencia || 1,
       data_inicio_recorrencia: formatDateForInput(conta.data_inicio_recorrencia),
       termino_apos_ocorrencias: conta.termino_apos_ocorrencias || 0,
+      n_docto_origem: conta.n_docto_origem || '',
+      sku_parcela: conta.sku_parcela || '',
+      intervalo_ini: conta.intervalo_ini || 0,
+      intervalo_rec: conta.intervalo_rec || 30,
+      eh_vencto_fixo: conta.eh_vencto_fixo || false,
       n_docto_origem: conta.n_docto_origem || '',
       sku_parcela: conta.sku_parcela || '',
       intervalo_ini: conta.intervalo_ini || 0,
