@@ -933,6 +933,7 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
               required
               step="0.01"
               min="0"
+            />
             
             <Select
               label="Status"

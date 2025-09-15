@@ -934,6 +934,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
               required
               step="0.01"
               min="0"
+            />
             
             <Select
               label="Status"
