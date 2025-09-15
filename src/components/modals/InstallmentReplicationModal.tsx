@@ -63,9 +63,9 @@ const InstallmentReplicationModal: React.FC<InstallmentReplicationModalProps> = 
       }
 
       // Check valor
-      if (originalRecord.valor_parcela !== updatedRecord.valor_parcela || originalRecord.valor_operacao !== updatedRecord.valor_operacao) {
-        const valorAnterior = originalRecord.valor_parcela;
-        const valorNovo = updatedRecord.valor_parcela;
+      if (originalRecord.valor !== updatedRecord.valor) {
+        const valorAnterior = originalRecord.valor;
+        const valorNovo = updatedRecord.valor;
         const valorDifference = valorNovo - valorAnterior;
         const isIncrease = valorDifference > 0;
         
@@ -282,7 +282,7 @@ const InstallmentReplicationModal: React.FC<InstallmentReplicationModalProps> = 
                     </p>
                     
                     {/* Value comparison for specific fields */}
-                    {change.field === 'valor' && (
+                    {change.field === 'valor_parcela' && (
                       <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
                         <span className="line-through text-red-600">
                           R$ {change.oldValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}

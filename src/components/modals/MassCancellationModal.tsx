@@ -214,7 +214,7 @@ const MassCancellationModal: React.FC<MassCancellationModalProps> = ({
                       {record.descricao}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
-                      R$ {record.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {(record.valor_parcela || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
                       {record.data_vencimento ? (() => {

@@ -60,7 +60,7 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
         dueDate: record.data_vencimento,
         collectionMethodId: record.forma_cobranca_id || '',
         collectionAccountId: record.conta_cobranca_id || '',
-        amount: record.valor,
+        amount: record.valor_parcela || 0,
         isEditing: false
       }));
 
