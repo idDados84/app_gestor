@@ -9,6 +9,7 @@ import MassCancellationModal from '../modals/MassCancellationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
 import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
 import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
+import FinancialSummary from '../ui/FinancialSummary';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
 import { 
@@ -99,7 +100,20 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     conta_cobranca_id: '',
     tipo_documento_id: '',
     descricao: '',
-    valor: '',
+    // Campos financeiros expandidos
+    valor_operacao: '',
+    valor_juros: '',
+    valor_multas: '',
+    valor_atualizacao: '',
+    valor_descontos: '',
+    valor_abto: '',
+    valor_pagto: '',
+    valor_financeiro: '',
+    valor_parcela: '',
+    status: 'pendente' as 'pendente' | 'pago' | 'cancelado',
+    data_vencimento: '',
+    data_pagamento: '',
+    observacoes: '',
     numero_parcela: 1,
     lancamento_pai_id: '',
     eh_recorrente: false,
@@ -195,7 +209,7 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     {
       key: 'valor' as keyof ContaPagar,
       header: 'Valor',
-      render: (value: number) => `R$ ${value?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}`
+      render: (value: number, item: ContaPagar) => `R$ ${(item.valor_parcela || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
     },
     {
       key: 'status' as keyof ContaPagar,
@@ -312,7 +326,19 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       conta_cobranca_id: '',
       tipo_documento_id: '',
       descricao: '',
-      valor: '',
+      valor_operacao: '',
+      valor_juros: '',
+      valor_multas: '',
+      valor_atualizacao: '',
+      valor_descontos: '',
+      valor_abto: '',
+      valor_pagto: '',
+      valor_financeiro: '',
+      valor_parcela: '',
+      status: 'pendente',
+      data_vencimento: '',
+      data_pagamento: '',
+      observacoes: '',
       numero_parcela: 1,
       lancamento_pai_id: '',
       eh_recorrente: false,
@@ -336,7 +362,19 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       conta_cobranca_id: conta.conta_cobranca_id || '',
       tipo_documento_id: conta.tipo_documento_id || '',
       descricao: conta.descricao,
-      valor: (conta.valor ?? 0).toString(),
+      valor_operacao: (conta.valor_operacao ?? 0).toString(),
+      valor_juros: (conta.valor_juros ?? 0).toString(),
+      valor_multas: (conta.valor_multas ?? 0).toString(),
+      valor_atualizacao: (conta.valor_atualizacao ?? 0).toString(),
+      valor_descontos: (conta.valor_descontos ?? 0).toString(),
+      valor_abto: (conta.valor_abto ?? 0).toString(),
+      valor_pagto: (conta.valor_pagto ?? 0).toString(),
+      valor_financeiro: (conta.valor_financeiro ?? 0).toString(),
+      valor_parcela: (conta.valor_parcela ?? 0).toString(),
+      status: conta.status,
+      data_vencimento: conta.data_vencimento,
+      data_pagamento: conta.data_pagamento || '',
+      observacoes: conta.observacoes || '',
       numero_parcela: conta.numero_parcela || 1,
       lancamento_pai_id: conta.lancamento_pai_id || '',
       eh_recorrente: conta.eh_recorrente || false,
@@ -518,7 +556,14 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     try {
       const dataToSubmit = {
         ...formData,
-        valor: parseFloat(formData.valor),
+        valor_operacao: parseFloat(formData.valor_operacao) || 0,
+        valor_juros: parseFloat(formData.valor_juros) || 0,
+        valor_multas: parseFloat(formData.valor_multas) || 0,
+        valor_atualizacao: parseFloat(formData.valor_atualizacao) || 0,
+        valor_descontos: parseFloat(formData.valor_descontos) || 0,
+        valor_abto: parseFloat(formData.valor_abto) || 0,
+        valor_pagto: parseFloat(formData.valor_pagto) || 0,
+        valor_parcela: parseFloat(formData.valor_parcela) || parseFloat(formData.valor_operacao) || 0,
         numero_parcela: formData.eh_parcelado ? formData.numero_parcela : null,
         lancamento_pai_id: formData.lancamento_pai_id || null,
         eh_recorrente: formData.eh_recorrente,
@@ -640,7 +685,9 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
   const hasSignificantChanges = (original: ContaPagar, updated: ContaPagar): boolean => {
     return (
       original.data_vencimento !== updated.data_vencimento ||
-      original.valor !== updated.valor ||
+      original.valor_parcela !== updated.valor_parcela ||
+      original.valor_operacao !== updated.valor_operacao ||
+      original.valor_financeiro !== updated.valor_financeiro ||
       original.descricao !== updated.descricao ||
       original.categoria_id !== updated.categoria_id ||
       original.observacoes !== updated.observacoes ||
@@ -873,11 +920,65 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
             />
             
             <Input
-              label="Valor"
+              label="Valor da Operação"
               type="number"
-              value={formData.valor}
-              onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
+              value={formData.valor_operacao}
+              onChange={(e) => setFormData({ ...formData, valor_operacao: e.target.value })}
               required
+              step="0.01"
+              min="0"
+            />
+            
+            <Input
+              label="Juros"
+              type="number"
+              value={formData.valor_juros}
+              onChange={(e) => setFormData({ ...formData, valor_juros: e.target.value })}
+              step="0.01"
+              min="0"
+            />
+            
+            <Input
+              label="Multas"
+              type="number"
+              value={formData.valor_multas}
+              onChange={(e) => setFormData({ ...formData, valor_multas: e.target.value })}
+              step="0.01"
+              min="0"
+            />
+            
+            <Input
+              label="Atualização Monetária"
+              type="number"
+              value={formData.valor_atualizacao}
+              onChange={(e) => setFormData({ ...formData, valor_atualizacao: e.target.value })}
+              step="0.01"
+              min="0"
+            />
+            
+            <Input
+              label="Descontos"
+              type="number"
+              value={formData.valor_descontos}
+              onChange={(e) => setFormData({ ...formData, valor_descontos: e.target.value })}
+              step="0.01"
+              min="0"
+            />
+            
+            <Input
+              label="Abatimentos"
+              type="number"
+              value={formData.valor_abto}
+              onChange={(e) => setFormData({ ...formData, valor_abto: e.target.value })}
+              step="0.01"
+              min="0"
+            />
+            
+            <Input
+              label="Pagamentos Realizados"
+              type="number"
+              value={formData.valor_pagto}
+              onChange={(e) => setFormData({ ...formData, valor_pagto: e.target.value })}
               step="0.01"
               min="0"
             />
@@ -1038,6 +1139,21 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
                 />
               </>
             )}
+          </div>
+          
+          {/* Resumo Financeiro */}
+          <div className="col-span-2 mt-4">
+            <FinancialSummary
+              values={{
+                valor_operacao: parseFloat(formData.valor_operacao) || 0,
+                valor_juros: parseFloat(formData.valor_juros) || 0,
+                valor_multas: parseFloat(formData.valor_multas) || 0,
+                valor_atualizacao: parseFloat(formData.valor_atualizacao) || 0,
+                valor_descontos: parseFloat(formData.valor_descontos) || 0,
+                valor_abto: parseFloat(formData.valor_abto) || 0,
+                valor_pagto: parseFloat(formData.valor_pagto) || 0
+              }}
+            />
           </div>
           
           <Input

@@ -62,13 +62,13 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
       }
 
       // Check valor
-      if (originalRecord.valor !== updatedRecord.valor) {
-        const valorAnterior = originalRecord.valor;
-        const valorNovo = updatedRecord.valor;
+      if (originalRecord.valor_parcela !== updatedRecord.valor_parcela || originalRecord.valor_operacao !== updatedRecord.valor_operacao) {
+        const valorAnterior = originalRecord.valor_parcela;
+        const valorNovo = updatedRecord.valor_parcela;
         const valorDifference = valorNovo - valorAnterior;
         
         changes.push({
-          field: 'valor',
+          field: 'valor_parcela',
           label: 'Valor',
           icon: DollarSign,
           oldValue: valorAnterior,

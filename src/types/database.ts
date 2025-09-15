@@ -121,7 +121,16 @@ export interface ContaPagar {
   conta_cobranca_id?: string;
   tipo_documento_id?: string;
   descricao: string;
-  valor: number;
+  // Campos financeiros expandidos
+  valor_operacao: number;      // Valor base da operação (sem acréscimos/descontos)
+  valor_juros: number;         // Juros aplicados
+  valor_multas: number;        // Multas por atraso/inadimplência
+  valor_atualizacao: number;   // Correção monetária/indexação
+  valor_descontos: number;     // Descontos concedidos
+  valor_abto: number;          // Abatimentos (compensações/devoluções)
+  valor_pagto: number;         // Pagamentos já realizados
+  valor_financeiro: number;    // Saldo líquido calculado automaticamente
+  valor_parcela: number;       // Valor individual da parcela
   status: 'pendente' | 'pago' | 'cancelado';
   data_vencimento: string;
   data_pagamento?: string;
@@ -164,7 +173,16 @@ export interface ContaReceber {
   conta_cobranca_id?: string;
   tipo_documento_id?: string;
   descricao: string;
-  valor: number;
+  // Campos financeiros expandidos
+  valor_operacao: number;      // Valor base da operação (sem acréscimos/descontos)
+  valor_juros: number;         // Juros aplicados
+  valor_multas: number;        // Multas por atraso/inadimplência
+  valor_atualizacao: number;   // Correção monetária/indexação
+  valor_descontos: number;     // Descontos concedidos
+  valor_abto: number;          // Abatimentos (compensações/devoluções)
+  valor_pagto: number;         // Pagamentos já realizados
+  valor_financeiro: number;    // Saldo líquido calculado automaticamente
+  valor_parcela: number;       // Valor individual da parcela
   status: 'pendente' | 'recebido' | 'cancelado';
   data_vencimento: string;
   data_recebimento?: string;
