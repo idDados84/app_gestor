@@ -120,24 +120,8 @@ export interface ContaPagar {
   forma_cobranca_id?: string;
   conta_cobranca_id?: string;
   tipo_documento_id?: string;
-  sku_parcela?: string;
-  intervalo_ini?: number;
-  intervalo_rec?: number;
-  n_docto_origem?: string;
-  n_doctos_ref?: string[];
-  projetos?: string[];
-  eh_vencto_fixo?: boolean;
   descricao: string;
-  // Campos financeiros expandidos
-  valor_operacao: number;      // Valor base da operação
-  valor_juros: number;         // Juros aplicados
-  valor_multas: number;        // Multas aplicadas
-  valor_atualizacao: number;   // Correções monetárias
-  valor_descontos: number;     // Descontos concedidos
-  valor_abto: number;          // Abatimentos
-  valor_pagto: number;         // Pagamentos realizados
-  valor_financeiro: number;    // Saldo calculado automaticamente
-  valor_parcela: number;       // Valor individual da parcela
+  valor: number;
   status: 'pendente' | 'pago' | 'cancelado';
   data_vencimento: string;
   data_pagamento?: string;
@@ -156,14 +140,11 @@ export interface ContaPagar {
   frequencia_recorrencia?: number;
   data_inicio_recorrencia?: string; // Date string
   termino_apos_ocorrencias?: number;
-  termino_apos_data?: string; // Date string
   empresas?: Empresa;
   participantes?: Participante;
   categorias?: Categoria;
   departamentos?: Departamento;
   formas_cobranca?: FormaCobranca;
-  contas_financeiras?: ContaFinanceira;
-  tipos_documentos?: TipoDocumento;
 }
 
 export interface ContaReceber {
@@ -175,24 +156,8 @@ export interface ContaReceber {
   forma_cobranca_id?: string;
   conta_cobranca_id?: string;
   tipo_documento_id?: string;
-  sku_parcela?: string;
-  intervalo_ini?: number;
-  intervalo_rec?: number;
-  n_docto_origem?: string;
-  n_doctos_ref?: string[];
-  projetos?: string[];
-  eh_vencto_fixo?: boolean;
   descricao: string;
-  // Campos financeiros expandidos
-  valor_operacao: number;      // Valor base da operação
-  valor_juros: number;         // Juros aplicados
-  valor_multas: number;        // Multas aplicadas
-  valor_atualizacao: number;   // Correções monetárias
-  valor_descontos: number;     // Descontos concedidos
-  valor_abto: number;          // Abatimentos
-  valor_pagto: number;         // Pagamentos realizados
-  valor_financeiro: number;    // Saldo calculado automaticamente
-  valor_parcela: number;       // Valor individual da parcela
+  valor: number;
   status: 'pendente' | 'recebido' | 'cancelado';
   data_vencimento: string;
   data_recebimento?: string;
@@ -216,8 +181,6 @@ export interface ContaReceber {
   categorias?: Categoria;
   departamentos?: Departamento;
   formas_cobranca?: FormaCobranca;
-  contas_financeiras?: ContaFinanceira;
-  tipos_documentos?: TipoDocumento;
 }
 
 export interface ContaFinanceira {
