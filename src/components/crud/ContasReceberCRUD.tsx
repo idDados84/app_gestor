@@ -1169,7 +1169,6 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         type="danger"
       />
     </div>
-  )
   );
 };
 
