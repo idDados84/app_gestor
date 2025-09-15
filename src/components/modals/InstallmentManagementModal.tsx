@@ -6,6 +6,7 @@ import Select from '../ui/Select';
 import { Edit3, Save, X, AlertTriangle, Calculator } from 'lucide-react';
 import type { ContaPagar, ContaReceber, ContaFinanceira, FormaCobranca } from '../../types/database';
 import { formatDateToYYYYMMDD, parseDateFromYYYYMMDD } from '../../utils/dateUtils';
+import { calculateInstallmentValues } from '../../utils/financialCalculations';
 
 interface InstallmentData {
   id: string;
@@ -115,20 +116,38 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
   };
 
   const handleAmountChange = (index: number, newAmount: number) => {
-    const oldAmount = installments[index].amount;
-    const difference = newAmount - oldAmount;
-    
-    // Update the current installment
+    // Atualizar a parcela atual
     const updatedInstallments = [...installments];
-    updatedInstallments[index].amount = newAmount;
+    updatedInstallments[index].amount = Math.round(newAmount * 100) / 100; // Garantir 2 casas decimais
     
-    // Distribute the difference among subsequent installments
-    if (difference !== 0 && index < updatedInstallments.length - 1) {
-      const remainingInstallments = updatedInstallments.length - index - 1;
-      const adjustmentPerInstallment = difference / remainingInstallments;
+    // Se há parcelas restantes após a atual, aplicar a lógica de arredondamento
+    const remainingInstallmentsCount = updatedInstallments.length - index - 1;
+    
+    if (remainingInstallmentsCount > 0) {
+      // Calcular soma das parcelas já definidas (até a parcela atual inclusive)
+      const sumDefinedInstallments = updatedInstallments
+        .slice(0, index + 1)
+        .reduce((sum, inst) => sum + inst.amount, 0);
       
-      for (let i = index + 1; i < updatedInstallments.length; i++) {
-        updatedInstallments[i].amount = Math.max(0, updatedInstallments[i].amount - adjustmentPerInstallment);
+      // Calcular valor restante para distribuir
+      const remainingAmount = originalTotal - sumDefinedInstallments;
+      
+      // Aplicar a lógica de arredondamento para as parcelas restantes
+      if (remainingAmount > 0 && remainingInstallmentsCount > 0) {
+        const distributedValues = calculateInstallmentValues(remainingAmount, remainingInstallmentsCount, false);
+        
+        // Atualizar as parcelas restantes com os valores calculados
+        for (let i = 0; i < remainingInstallmentsCount; i++) {
+          const installmentIndex = index + 1 + i;
+          if (installmentIndex < updatedInstallments.length) {
+            updatedInstallments[installmentIndex].amount = Math.round(distributedValues[i] * 100) / 100;
+          }
+        }
+      } else if (remainingAmount <= 0) {
+        // Se não há valor restante, zerar as parcelas restantes
+        for (let i = index + 1; i < updatedInstallments.length; i++) {
+          updatedInstallments[i].amount = 0;
+        }
       }
     }
     
