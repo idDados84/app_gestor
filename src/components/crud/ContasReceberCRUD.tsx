@@ -688,14 +688,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
   const hasSignificantChanges = (original: ContaReceber, updated: ContaReceber): boolean => {
     return (
       original.data_vencimento !== updated.data_vencimento ||
-      original.valor_operacao !== updated.valor_operacao ||
-      original.valor_juros !== updated.valor_juros ||
-      original.valor_multas !== updated.valor_multas ||
-      original.valor_atualizacao !== updated.valor_atualizacao ||
-      original.valor_descontos !== updated.valor_descontos ||
-      original.valor_abto !== updated.valor_abto ||
-      original.valor_pagto !== updated.valor_pagto ||
-      original.valor_parcela !== updated.valor_parcela ||
+      original.valor !== updated.valor ||
       original.descricao !== updated.descricao ||
       original.categoria_id !== updated.categoria_id ||
       original.observacoes !== updated.observacoes ||
@@ -927,6 +920,154 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
               value={formData.valor}
               onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
               required
+              step="0.01"
+              min="0"
+            />
+            
+            <div className="col-span-2">
+              <h4 className="text-sm font-medium text-gray-900 mb-3 border-b pb-2">
+                Detalhamento Financeiro
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Juros"
+                  type="number"
+                  value={formData.valor_juros}
+                  onChange={(e) => {
+                    const newFormData = { ...formData, valor_juros: e.target.value };
+                    const valorFinanceiro = (parseFloat(newFormData.valor_operacao) || 0) +
+                                          (parseFloat(newFormData.valor_juros) || 0) +
+                                          (parseFloat(newFormData.valor_multas) || 0) +
+                                          (parseFloat(newFormData.valor_atualizacao) || 0) -
+                                          (parseFloat(newFormData.valor_descontos) || 0) -
+                                          (parseFloat(newFormData.valor_abto) || 0) -
+                                          (parseFloat(newFormData.valor_pagto) || 0);
+                    newFormData.valor_financeiro = Math.max(0, valorFinanceiro).toString();
+                    setFormData(newFormData);
+                  }}
+                  step="0.01"
+                  min="0"
+                />
+                
+                <Input
+                  label="Multas"
+                  type="number"
+                  value={formData.valor_multas}
+                  onChange={(e) => {
+                    const newFormData = { ...formData, valor_multas: e.target.value };
+                    const valorFinanceiro = (parseFloat(newFormData.valor_operacao) || 0) +
+                                          (parseFloat(newFormData.valor_juros) || 0) +
+                                          (parseFloat(newFormData.valor_multas) || 0) +
+                                          (parseFloat(newFormData.valor_atualizacao) || 0) -
+                                          (parseFloat(newFormData.valor_descontos) || 0) -
+                                          (parseFloat(newFormData.valor_abto) || 0) -
+                                          (parseFloat(newFormData.valor_pagto) || 0);
+                    newFormData.valor_financeiro = Math.max(0, valorFinanceiro).toString();
+                    setFormData(newFormData);
+                  }}
+                  step="0.01"
+                  min="0"
+                />
+                
+                <Input
+                  label="Atualização Monetária"
+                  type="number"
+                  value={formData.valor_atualizacao}
+                  onChange={(e) => {
+                    const newFormData = { ...formData, valor_atualizacao: e.target.value };
+                    const valorFinanceiro = (parseFloat(newFormData.valor_operacao) || 0) +
+                                          (parseFloat(newFormData.valor_juros) || 0) +
+                                          (parseFloat(newFormData.valor_multas) || 0) +
+                                          (parseFloat(newFormData.valor_atualizacao) || 0) -
+                                          (parseFloat(newFormData.valor_descontos) || 0) -
+                                          (parseFloat(newFormData.valor_abto) || 0) -
+                                          (parseFloat(newFormData.valor_pagto) || 0);
+                    newFormData.valor_financeiro = Math.max(0, valorFinanceiro).toString();
+                    setFormData(newFormData);
+                  }}
+                  step="0.01"
+                  min="0"
+                />
+                
+                <Input
+                  label="Descontos"
+                  type="number"
+                  value={formData.valor_descontos}
+                  onChange={(e) => {
+                    const newFormData = { ...formData, valor_descontos: e.target.value };
+                    const valorFinanceiro = (parseFloat(newFormData.valor_operacao) || 0) +
+                                          (parseFloat(newFormData.valor_juros) || 0) +
+                                          (parseFloat(newFormData.valor_multas) || 0) +
+                                          (parseFloat(newFormData.valor_atualizacao) || 0) -
+                                          (parseFloat(newFormData.valor_descontos) || 0) -
+                                          (parseFloat(newFormData.valor_abto) || 0) -
+                                          (parseFloat(newFormData.valor_pagto) || 0);
+                    newFormData.valor_financeiro = Math.max(0, valorFinanceiro).toString();
+                    setFormData(newFormData);
+                  }}
+                  step="0.01"
+                  min="0"
+                />
+                
+                <Input
+                  label="Abatimentos"
+                  type="number"
+                  value={formData.valor_abto}
+                  onChange={(e) => {
+                    const newFormData = { ...formData, valor_abto: e.target.value };
+                    const valorFinanceiro = (parseFloat(newFormData.valor_operacao) || 0) +
+                                          (parseFloat(newFormData.valor_juros) || 0) +
+                                          (parseFloat(newFormData.valor_multas) || 0) +
+                                          (parseFloat(newFormData.valor_atualizacao) || 0) -
+                                          (parseFloat(newFormData.valor_descontos) || 0) -
+                                          (parseFloat(newFormData.valor_abto) || 0) -
+                                          (parseFloat(newFormData.valor_pagto) || 0);
+                    newFormData.valor_financeiro = Math.max(0, valorFinanceiro).toString();
+                    setFormData(newFormData);
+                  }}
+                  step="0.01"
+                  min="0"
+                />
+                
+                <Input
+                  label="Pagamentos Realizados"
+                  type="number"
+                  value={formData.valor_pagto}
+                  onChange={(e) => {
+                    const newFormData = { ...formData, valor_pagto: e.target.value };
+                    const valorFinanceiro = (parseFloat(newFormData.valor_operacao) || 0) +
+                                          (parseFloat(newFormData.valor_juros) || 0) +
+                                          (parseFloat(newFormData.valor_multas) || 0) +
+                                          (parseFloat(newFormData.valor_atualizacao) || 0) -
+                                          (parseFloat(newFormData.valor_descontos) || 0) -
+                                          (parseFloat(newFormData.valor_abto) || 0) -
+                                          (parseFloat(newFormData.valor_pagto) || 0);
+                    newFormData.valor_financeiro = Math.max(0, valorFinanceiro).toString();
+                    setFormData(newFormData);
+                  }}
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+            </div>
+            
+            <div className="col-span-2 bg-green-50 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-green-900">Valor Financeiro (Calculado):</span>
+                <span className="text-lg font-bold text-green-900">
+                  R$ {(parseFloat(formData.valor_financeiro) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <p className="text-xs text-green-700 mt-1">
+                Fórmula: Operação + Juros + Multas + Atualização - Descontos - Abatimentos - Pagamentos
+              </p>
+            </div>
+            
+            <Input
+              label="Valor da Parcela"
+              type="number"
+              value={formData.valor_parcela}
+              onChange={(e) => setFormData({ ...formData, valor_parcela: e.target.value })}
               step="0.01"
               min="0"
             />

@@ -63,18 +63,28 @@ const InstallmentReplicationModal: React.FC<InstallmentReplicationModalProps> = 
       }
 
       // Check valor
-      if (originalRecord.valor !== updatedRecord.valor) {
-        const valorDifference = updatedRecord.valor - originalRecord.valor;
+      if (originalRecord.valor_operacao !== updatedRecord.valor_operacao || 
+          originalRecord.valor_juros !== updatedRecord.valor_juros ||
+          originalRecord.valor_multas !== updatedRecord.valor_multas ||
+          originalRecord.valor_atualizacao !== updatedRecord.valor_atualizacao ||
+          originalRecord.valor_descontos !== updatedRecord.valor_descontos ||
+          originalRecord.valor_abto !== updatedRecord.valor_abto ||
+          originalRecord.valor_pagto !== updatedRecord.valor_pagto ||
+          originalRecord.valor_parcela !== updatedRecord.valor_parcela) {
+        
+        const valorAnterior = originalRecord.valor_financeiro || originalRecord.valor_operacao;
+        const valorNovo = updatedRecord.valor_financeiro || updatedRecord.valor_operacao;
+        const valorDifference = valorNovo - valorAnterior;
         const isIncrease = valorDifference > 0;
         
         changes.push({
           field: 'valor',
-          label: 'Valor',
+          label: 'Valores Financeiros',
           icon: DollarSign,
-          oldValue: originalRecord.valor,
-          newValue: updatedRecord.valor,
+          oldValue: valorAnterior,
+          newValue: valorNovo,
           selected: true,
-          description: `${isIncrease ? 'Aumentar' : 'Diminuir'} o valor das próximas parcelas em R$ ${Math.abs(valorDifference).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}? (de R$ ${originalRecord.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para R$ ${updatedRecord.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`
+          description: `${isIncrease ? 'Aumentar' : 'Diminuir'} os valores das próximas parcelas em R$ ${Math.abs(valorDifference).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}? (de R$ ${valorAnterior.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para R$ ${valorNovo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`
         });
       }
 
