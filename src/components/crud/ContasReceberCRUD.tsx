@@ -532,7 +532,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
           data_vencimento: installment.dueDate,
           forma_cobranca_id: installment.collectionMethodId || null,
           conta_cobranca_id: installment.collectionAccountId || null,
-          valor: installment.amount
+          valor_parcela: installment.amount
         };
         
         await contasReceberServiceExtended.update(installment.id, updateData);
@@ -824,8 +824,8 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
               updates.data_vencimento = futureDate.toISOString().split('T')[0];
               break;
               
-            case 'valor':
-              updates.valor = updatedRecord!.valor;
+            case 'valor_parcela':
+              updates.valor_parcela = updatedRecord!.valor_parcela;
               break;
               
             case 'descricao':
