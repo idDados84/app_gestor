@@ -12,6 +12,7 @@ import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
 import FinancialSummary from '../ui/FinancialSummary';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
+import { calculateValorFinanceiro } from '../../utils/financialCalculations';
 import { 
   contasPagarServiceExtended, 
   empresasService, 
@@ -563,7 +564,17 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
         valor_descontos: parseFloat(formData.valor_descontos) || 0,
         valor_abto: parseFloat(formData.valor_abto) || 0,
         valor_pagto: parseFloat(formData.valor_pagto) || 0,
-        valor_parcela: parseFloat(formData.valor_parcela) || parseFloat(formData.valor_operacao) || 0,
+        // valor_parcela será calculado automaticamente no parcelamento
+        // Para registros únicos, usar o valor_financeiro calculado
+        valor_parcela: formData.eh_parcelado ? 0 : calculateValorFinanceiro({
+          valor_operacao: parseFloat(formData.valor_operacao) || 0,
+          valor_juros: parseFloat(formData.valor_juros) || 0,
+          valor_multas: parseFloat(formData.valor_multas) || 0,
+          valor_atualizacao: parseFloat(formData.valor_atualizacao) || 0,
+          valor_descontos: parseFloat(formData.valor_descontos) || 0,
+          valor_abto: parseFloat(formData.valor_abto) || 0,
+          valor_pagto: parseFloat(formData.valor_pagto) || 0
+        }),
         numero_parcela: formData.eh_parcelado ? formData.numero_parcela : null,
         lancamento_pai_id: formData.lancamento_pai_id || null,
         eh_recorrente: formData.eh_recorrente,

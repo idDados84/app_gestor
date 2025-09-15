@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { formatDateToYYYYMMDD, parseDateFromYYYYMMDD } from '../utils/dateUtils';
-import { calculateInstallmentValues } from '../utils/financialCalculations';
+import { calculateInstallmentValues, calculateValorFinanceiro } from '../utils/financialCalculations';
 
 // Helper function to check if Supabase is properly configured
 const isSupabaseConfigured = () => {
@@ -434,8 +434,19 @@ export const contasPagarServiceExtended = {
     }
     // Handle installments (if not recurring)
     else if (item.eh_parcelado && item.total_parcelas && item.total_parcelas > 1) {
-      // Use valor_financeiro para distribuir as parcelas (excluindo entrada se houver)
-      const valorParaDistribuir = item.valor_financeiro || item.valor_operacao || 0;
+      // Calcular valor_financeiro primeiro
+      const valorFinanceiro = calculateValorFinanceiro({
+        valor_operacao: item.valor_operacao || 0,
+        valor_juros: item.valor_juros || 0,
+        valor_multas: item.valor_multas || 0,
+        valor_atualizacao: item.valor_atualizacao || 0,
+        valor_descontos: item.valor_descontos || 0,
+        valor_abto: item.valor_abto || 0,
+        valor_pagto: item.valor_pagto || 0
+      });
+      
+      // Use valor_financeiro para distribuir as parcelas
+      const valorParaDistribuir = valorFinanceiro;
       const parcelasParaDistribuir = item.total_parcelas;
       
       // Calcular distribuição usando a nova lógica financeira
@@ -692,8 +703,19 @@ export const contasReceberServiceExtended = {
     }
     // Handle installments (if not recurring)
     else if (item.eh_parcelado && item.total_parcelas && item.total_parcelas > 1) {
+      // Calcular valor_financeiro primeiro
+      const valorFinanceiro = calculateValorFinanceiro({
+        valor_operacao: item.valor_operacao || 0,
+        valor_juros: item.valor_juros || 0,
+        valor_multas: item.valor_multas || 0,
+        valor_atualizacao: item.valor_atualizacao || 0,
+        valor_descontos: item.valor_descontos || 0,
+        valor_abto: item.valor_abto || 0,
+        valor_pagto: item.valor_pagto || 0
+      });
+      
       // Use valor_financeiro para distribuir as parcelas
-      const valorParaDistribuir = item.valor_financeiro || item.valor_operacao || 0;
+      const valorParaDistribuir = valorFinanceiro;
       const parcelasParaDistribuir = item.total_parcelas;
       
       // Calcular distribuição usando a nova lógica financeira

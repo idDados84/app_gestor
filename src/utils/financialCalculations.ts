@@ -31,21 +31,33 @@ export function calculateValorFinanceiro(values: FinancialValues): number {
 /**
  * Calcula a distribuição de parcelas com entrada (parcela 0)
  * Implementa a lógica onde as primeiras parcelas recebem valores maiores
+ * Garante que a soma das parcelas seja exatamente igual ao valor financeiro
  */
 export function calculateInstallmentValues(valorFinanceiro: number, totalParcelas: number, hasEntrada: boolean = false): number[] {
   const parcelasParaDistribuir = hasEntrada ? totalParcelas - 1 : totalParcelas;
   if (parcelasParaDistribuir <= 0) return [];
   
-  // Calcular valor base por parcela (em centavos para evitar problemas de ponto flutuante)
+  // Converter para centavos para evitar problemas de ponto flutuante
   const valorEmCentavos = Math.round(valorFinanceiro * 100);
   const valorBaseCentavos = Math.floor(valorEmCentavos / parcelasParaDistribuir);
   const restoCentavos = valorEmCentavos % parcelasParaDistribuir;
   
   const valores = [];
   for (let i = 0; i < parcelasParaDistribuir; i++) {
-    // As primeiras parcelas recebem o centavo extra
+    // As primeiras parcelas recebem os centavos extras do resto da divisão
     const valorParcela = i < restoCentavos ? valorBaseCentavos + 1 : valorBaseCentavos;
     valores.push(valorParcela / 100); // Converter de volta para reais
+  }
+  
+  // Validação: garantir que a soma seja exatamente igual ao valor financeiro
+  const somaCalculada = valores.reduce((acc, valor) => acc + valor, 0);
+  const diferenca = Math.abs(somaCalculada - valorFinanceiro);
+  
+  if (diferenca > 0.01) {
+    console.warn(`Diferença na distribuição de parcelas: ${diferenca.toFixed(2)}`);
+    // Ajustar a última parcela para corrigir pequenas diferenças de arredondamento
+    const ajuste = valorFinanceiro - somaCalculada;
+    valores[valores.length - 1] += ajuste;
   }
   
   return valores;
@@ -61,12 +73,14 @@ export function validateInstallmentSum(parcelas: number[], valorFinanceiro: numb
 }
 
 /**
- * Exemplo prático: R$ 1.000,00 parcelado em 5x com entrada R$ 100,00
+ * Exemplo prático atualizado: R$ 897,00 (valor_financeiro) parcelado em 5x
+ * Demonstra a distribuição correta com arredondamento
  */
 export function exemploCalculoFinanceiro(): {
   valores: FinancialValues;
   valorFinanceiro: number;
   distribuicao: { parcela: number; valor: number; descricao: string }[];
+  validacao: { somaCalculada: number; diferenca: number; isValid: boolean };
 } {
   const valores: FinancialValues = {
     valor_operacao: 1000.00,
@@ -75,20 +89,26 @@ export function exemploCalculoFinanceiro(): {
     valor_atualizacao: 3.00,
     valor_descontos: 4.00,
     valor_abto: 5.00,
-    valor_pagto: 100.00 // entrada
+    valor_pagto: 100.00 // pagamento já realizado (entrada)
   };
 
   const valorFinanceiro = calculateValorFinanceiro(valores);
-  const parcelasValores = calculateInstallmentValues(valorFinanceiro, 5, true);
+  const parcelasValores = calculateInstallmentValues(valorFinanceiro, 5, false);
   
   const distribuicao = [
-    { parcela: 0, valor: 100.00, descricao: 'Entrada' },
     ...parcelasValores.map((valor, index) => ({
       parcela: index + 1,
       valor,
-      descricao: `Parcela ${index + 1}/5`
+      descricao: `Parcela ${index + 1}/5 (valor_financeiro: R$ ${valorFinanceiro.toFixed(2)})`
     }))
   ];
 
-  return { valores, valorFinanceiro, distribuicao };
+  // Validação da distribuição
+  const somaCalculada = parcelasValores.reduce((acc, valor) => acc + valor, 0);
+  const diferenca = Math.abs(somaCalculada - valorFinanceiro);
+  const isValid = diferenca < 0.01;
+  
+  const validacao = { somaCalculada, diferenca, isValid };
+
+  return { valores, valorFinanceiro, distribuicao, validacao };
 }
