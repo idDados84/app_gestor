@@ -819,6 +819,12 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     }
   };
 
+  const formatDateForInput = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+    // Assume dateString is in YYYY-MM-DD format
+    return dateString.split('T')[0];
+  };
+
   const empresasOptions = empresas.map(emp => ({ value: emp.id, label: emp.nome }));
   const fornecedoresOptions = fornecedores.map(forn => ({ value: forn.id, label: forn.nome }));
   const categoriasOptions = categorias.map(cat => ({ value: cat.id, label: cat.nome }));
@@ -914,22 +920,10 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
             />
             
             <Input
-              label="Valor da Operação"
+              label="Valor"
               type="number"
-              value={formData.valor_operacao}
-              onChange={(e) => {
-                const newFormData = { ...formData, valor_operacao: e.target.value };
-                // Recalcular valor_financeiro automaticamente
-                const valorFinanceiro = (parseFloat(newFormData.valor_operacao) || 0) +
-                                      (parseFloat(newFormData.valor_juros) || 0) +
-                                      (parseFloat(newFormData.valor_multas) || 0) +
-                                      (parseFloat(newFormData.valor_atualizacao) || 0) -
-                                      (parseFloat(newFormData.valor_descontos) || 0) -
-                                      (parseFloat(newFormData.valor_abto) || 0) -
-                                      (parseFloat(newFormData.valor_pagto) || 0);
-                newFormData.valor_financeiro = Math.max(0, valorFinanceiro).toString();
-                setFormData(newFormData);
-              }}
+              value={formData.valor}
+              onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
               required
               step="0.01"
               min="0"
@@ -1199,7 +1193,6 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
         type="danger"
       />
     </div>
-  )
   );
 };
 
