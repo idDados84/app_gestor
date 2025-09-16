@@ -14,7 +14,6 @@ import InstallmentManagementModal from '../modals/InstallmentManagementModal';
 import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
 import { useToast } from '../../hooks/useToast';
 import { Settings, Edit } from 'lucide-react';
-import { Settings } from 'lucide-react';
 import { 
   contasReceberServiceExtended, 
   empresasService, 
