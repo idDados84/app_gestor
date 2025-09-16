@@ -51,6 +51,8 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   console.log('InstallmentManagementModal - isRecurringSeries prop received:', isRecurringSeries);
+  console.log('InstallmentManagementModal - records:', records);
+  console.log('InstallmentManagementModal - first record eh_recorrente:', records[0]?.eh_recorrente);
 
   // Initialize installments when modal opens or records change
   useEffect(() => {

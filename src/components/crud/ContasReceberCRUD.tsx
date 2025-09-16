@@ -1294,7 +1294,6 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         departamentos={departamentos}
         formasCobranca={formasCobranca}
         contasFinanceiras={contasFinanceiras}
-          isRecurringSeries={installmentManagementModal.isRecurringSeries}
         tiposDocumentos={tiposDocumentos}
       />
     </div>
