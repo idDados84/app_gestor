@@ -1152,8 +1152,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
 
       <InstallmentReplicationModal
         isOpen={installmentReplicationModal.isOpen}
-        onClose={() => setInstallmentReplicationModal({ 
-        onConfirm={handleConfirmInstallmentReplication},
+        onClose={() => setInstallmentReplicationModal({
+          isOpen: false,
           originalRecord: null, 
           updatedRecord: null, 
           futureInstallments: [] 
@@ -1242,6 +1242,7 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
             futureInstallments: [] 
           });
         }}
+        onConfirm={handleConfirmInstallmentReplication}
         originalRecord={installmentReplicationModal.originalRecord}
         updatedRecord={installmentReplicationModal.updatedRecord}
         futureInstallments={installmentReplicationModal.futureInstallments}
