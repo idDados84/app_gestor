@@ -12,6 +12,7 @@ import MassCancellationModal from '../modals/MassCancellationModal';
 import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
 import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
 import { useToast } from '../../hooks/useToast';
+import { Settings } from 'lucide-react';
 import { 
   contasReceberServiceExtended, 
   empresasService, 
@@ -81,6 +82,11 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     updatedRecord: ContaReceber | null;
     futureRecords: ContaReceber[];
   }>({ isOpen: false, originalRecord: null, updatedRecord: null, futureRecords: [] });
+  const [installmentManagementModal, setInstallmentManagementModal] = useState<{
+    isOpen: boolean;
+    records: ContaReceber[];
+    parentId?: string;
+  }>({ isOpen: false, records: [] });
 
   const { showError: internalShowError, showSuccess: internalShowSuccess } = useToast();
   
@@ -352,6 +358,33 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     }
   };
 
+  const handleManageInstallments = async (conta: ContaReceber) => {
+    try {
+      // Find all related installments
+      const parentId = conta.lancamento_pai_id || conta.id;
+      const allInstallments = contas.filter(c => 
+        c.id === parentId || c.lancamento_pai_id === parentId
+      );
+      
+      if (allInstallments.length > 1) {
+        setInstallmentManagementModal({
+          isOpen: true,
+          records: allInstallments.sort((a, b) => {
+            const aNum = a.numero_parcela || 1;
+            const bNum = b.numero_parcela || 1;
+            return aNum - bNum;
+          }),
+          parentId
+        });
+      } else {
+        showError('Nenhuma parcela relacionada encontrada');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar parcelas:', error);
+      showError('Erro ao carregar parcelas para gerenciamento');
+    }
+  };
+
   const confirmDelete = async () => {
     if (!confirmDialog.item) return;
     
@@ -374,6 +407,30 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     } catch (error) {
       console.error('Erro ao cancelar registros:', error);
       showError('Erro ao cancelar registros em massa');
+    }
+  };
+
+  const handleInstallmentManagementSave = async (installments: any[]) => {
+    try {
+      // Update each installment with the new data
+      for (const installment of installments) {
+        const updateData = {
+          sku_parcela: installment.skuParcela,
+          data_vencimento: installment.dueDate,
+          forma_cobranca_id: installment.collectionMethodId || null,
+          conta_cobranca_id: installment.collectionAccountId || null,
+          valor_parcela: installment.amount
+        };
+        
+        await contasReceberServiceExtended.update(installment.id, updateData);
+      }
+      
+      showSuccess('Parcelas atualizadas com sucesso');
+      setInstallmentManagementModal({ isOpen: false, records: [] });
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao atualizar parcelas:', error);
+      showError('Erro ao atualizar parcelas');
     }
   };
 
@@ -496,11 +553,43 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
   const contasFinanceirasOptions = contasFinanceiras.map(conta => ({ value: conta.id, label: `${conta.codigo_conta} - ${conta.nome_conta}` }));
   const tiposDocumentosOptions = tiposDocumentos.map(tipo => ({ value: tipo.id, label: `${tipo.sigla_tipo} - ${tipo.nome_tipo}` }));
 
+  // Check if a record is part of a series (installments or recurrence)
+  const isPartOfSeries = (conta: ContaReceber) => {
+    return conta.eh_parcelado || 
+           (conta.total_parcelas && conta.total_parcelas > 1) || 
+           conta.lancamento_pai_id || 
+           conta.eh_recorrente;
+  };
+
+  // Enhanced columns with manage installments action
+  const enhancedColumns = [
+    ...columns,
+    {
+      key: 'actions' as keyof ContaReceber,
+      header: 'Ações Especiais',
+      render: (value: any, item: ContaReceber) => {
+        if (isPartOfSeries(item)) {
+          return (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleManageInstallments(item)}
+              icon={Settings}
+            >
+              Gerenciar Parcelas
+            </Button>
+          );
+        }
+        return '-';
+      }
+    }
+  ];
+
   return (
     <div>
       <DataTable
         data={contas}
-        columns={columns}
+        columns={enhancedColumns}
         onAdd={handleAdd}
         onEdit={handleEdit}
         onDelete={handleDelete}
@@ -915,6 +1004,16 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         onClose={() => setElectronicDataModal({ isOpen: false, data: null })}
         onSubmit={handleElectronicDataSubmit}
         initialData={electronicDataModal.data}
+      />
+
+      <InstallmentManagementModal
+        isOpen={installmentManagementModal.isOpen}
+        onClose={() => setInstallmentManagementModal({ isOpen: false, records: [] })}
+        onSave={handleInstallmentManagementSave}
+        records={installmentManagementModal.records}
+        type="receber"
+        contasFinanceiras={contasFinanceiras}
+        formasCobranca={formasCobranca}
       />
 
       <InstallmentReplicationModal
