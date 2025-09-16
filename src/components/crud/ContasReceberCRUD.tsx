@@ -254,6 +254,42 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       conta_cobranca_id: '',
       tipo_documento_id: '',
       descricao: '',
+      valor_operacao: '',
+      valor_juros: '',
+      valor_multas: '',
+      valor_atualizacao: '',
+      valor_descontos: '',
+      valor_abto: '',
+      valor_pagto: '',
+      valor_parcela: '',
+      status: 'pendente' as 'pendente' | 'recebido' | 'cancelado',
+      data_vencimento: '',
+      data_recebimento: '',
+      observacoes: '',
+      dados_ele: null as ElectronicData | null,
+      id_autorizacao: '',
+      eh_parcelado: false,
+      total_parcelas: '',
+      eh_recorrente: false,
+      periodicidade: '',
+      frequencia_recorrencia: '',
+      data_inicio_recorrencia: '',
+      termino_apos_ocorrencias: '',
+      n_docto_origem: '',
+      n_doctos_ref: [] as string[],
+      projetos: [] as string[],
+      sku_parcela: '',
+      intervalo_ini: '',
+      intervalo_rec: '',
+      eh_vencto_fixo: false
+    });
+  };
+
+  const handleAdd = () => {
+    setEditingConta(null);
+    resetFormData();
+    setIsModalOpen(true);
+  };
 
   const handleEdit = (conta: ContaReceber) => {
     // Check if this record is part of a series (installments or recurring)
@@ -304,226 +340,6 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         eh_vencto_fixo: conta.eh_vencto_fixo || false
       });
       setIsModalOpen(true);
-    }
-  };
-
-  const handleSeriesManagement = async (conta: ContaPagar) => {
-    try {
-      // Find all related records in the series
-      const parentId = conta.lancamento_pai_id || conta.id;
-      const { data: relatedRecords, error } = await supabase
-        .from('contas_pagar')
-        .select('*')
-        .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
-        .is('deleted_at', null)
-        .order('data_vencimento', { ascending: true });
-        
-      if (error) throw error;
-      
-      const isRecurringSeries = conta.eh_recorrente || relatedRecords?.some(r => r.eh_recorrente) || false;
-      
-      setInstallmentManagementModal({
-        isOpen: true,
-        records: relatedRecords || [conta],
-        isRecurringSeries
-      });
-    } catch (error) {
-      console.error('Erro ao carregar série:', error);
-      showError('Erro ao carregar série de registros');
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Store original data for comparison if editing
-    const originalData = editingConta ? { ...editingConta } : null;
-    
-    try {
-      const dataToSubmit = {
-        ...formData,
-        valor_operacao: parseFloat(formData.valor_operacao) || 0,
-        valor_juros: parseFloat(formData.valor_juros) || 0,
-        valor_multas: parseFloat(formData.valor_multas) || 0,
-        valor_atualizacao: parseFloat(formData.valor_atualizacao) || 0,
-        valor_descontos: parseFloat(formData.valor_descontos) || 0,
-        valor_abto: parseFloat(formData.valor_abto) || 0,
-        valor_pagto: parseFloat(formData.valor_pagto) || 0,
-        valor_parcela: parseFloat(formData.valor_parcela) || 0,
-        total_parcelas: parseInt(formData.total_parcelas) || 1,
-        frequencia_recorrencia: parseInt(formData.frequencia_recorrencia) || 1,
-        termino_apos_ocorrencias: parseInt(formData.termino_apos_ocorrencias) || null,
-        intervalo_ini: parseInt(formData.intervalo_ini) || 0,
-        intervalo_rec: parseInt(formData.intervalo_rec) || 30,
-        categoria_id: formData.categoria_id || null,
-        departamento_id: formData.departamento_id || null,
-        forma_cobranca_id: formData.forma_cobranca_id || null,
-        conta_cobranca_id: formData.conta_cobranca_id || null,
-        tipo_documento_id: formData.tipo_documento_id || null,
-        data_pagamento: formData.data_pagamento || null,
-        periodicidade: formData.periodicidade || null,
-        data_inicio_recorrencia: formData.data_inicio_recorrencia || null,
-        n_docto_origem: formData.n_docto_origem || null,
-        sku_parcela: formData.sku_parcela || null,
-        id_autorizacao: formData.id_autorizacao || null
-      };
-      
-      if (editingConta) {
-        const updatedRecord = await contasPagarServiceExtended.update(editingConta.id, dataToSubmit);
-        
-        // Check if we need to replicate changes to future records
-        await checkForReplication(originalData, updatedRecord);
-        
-        showSuccess('Conta atualizada com sucesso');
-      } else {
-        await contasPagarServiceExtended.create(dataToSubmit);
-        showSuccess('Conta criada com sucesso');
-      }
-      
-      if (!recurrenceReplicationModal.isOpen && !installmentReplicationModal.isOpen) {
-        setIsModalOpen(false);
-        await loadData();
-      }
-    } catch (error) {
-      console.error('Erro ao salvar conta:', error);
-      showError('Erro ao salvar conta');
-    }
-  };
-
-  const checkForReplication = async (originalData: ContaPagar | null, updatedRecord: ContaPagar) => {
-    if (!originalData) return;
-    
-    try {
-      // Check if this is a recurring record
-      if (originalData.eh_recorrente) {
-        const parentId = originalData.lancamento_pai_id || originalData.id;
-        const { data: futureRecords, error } = await supabase
-          .from('contas_pagar')
-          .select('*')
-          .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
-          .gt('data_vencimento', originalData.data_vencimento)
-          .eq('eh_recorrente', true)
-          .is('deleted_at', null)
-          .order('data_vencimento', { ascending: true });
-          
-        if (error) throw error;
-        
-        if (futureRecords && futureRecords.length > 0) {
-          setRecurrenceReplicationModal({
-            isOpen: true,
-            originalRecord: originalData,
-            updatedRecord: updatedRecord,
-            futureRecords
-          });
-          return;
-        }
-      }
-      
-      // Check if this is an installment record
-      if (originalData.eh_parcelado || originalData.total_parcelas > 1 || originalData.lancamento_pai_id) {
-        const parentId = originalData.lancamento_pai_id || originalData.id;
-        const { data: futureInstallments, error } = await supabase
-          .from('contas_pagar')
-          .select('*')
-          .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
-          .gt('numero_parcela', originalData.numero_parcela || 1)
-          .is('deleted_at', null)
-          .order('numero_parcela', { ascending: true });
-          
-        if (error) throw error;
-        
-        if (futureInstallments && futureInstallments.length > 0) {
-          setInstallmentReplicationModal({
-            isOpen: true,
-            originalRecord: originalData,
-            updatedRecord: updatedRecord,
-            futureInstallments
-          });
-          return;
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao verificar replicação:', error);
-    }
-  };
-
-  const handleRecurrenceReplication = async (selectedChanges: any[]) => {
-    try {
-      const { futureRecords } = recurrenceReplicationModal;
-      
-      for (const record of futureRecords) {
-        const updates: any = {};
-        
-        for (const change of selectedChanges) {
-          if (change.field === 'data_vencimento' && change.newDayOfMonth) {
-            // Special handling for date changes - apply new day of month
-            const currentDate = parseDateFromYYYYMMDD(record.data_vencimento);
-            const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), change.newDayOfMonth);
-            updates.data_vencimento = formatDateToYYYYMMDD(newDate);
-          } else {
-            updates[change.field] = change.newValue;
-          }
-        }
-        
-        if (Object.keys(updates).length > 0) {
-          await contasPagarServiceExtended.update(record.id, updates);
-        }
-      }
-      
-      setRecurrenceReplicationModal({ 
-        isOpen: false, 
-        originalRecord: null, 
-        updatedRecord: null, 
-        futureRecords: [] 
-      });
-      setIsModalOpen(false);
-      showSuccess(`Alterações aplicadas a ${futureRecords.length} registro(s) recorrente(s)`);
-      await loadData();
-    } catch (error) {
-      console.error('Erro ao replicar alterações:', error);
-      showError('Erro ao replicar alterações');
-    }
-  };
-
-  const handleInstallmentReplication = async (selectedChanges: any[]) => {
-    try {
-      const { futureInstallments } = installmentReplicationModal;
-      
-      for (const installment of futureInstallments) {
-        const updates: any = {};
-        
-        for (const change of selectedChanges) {
-          if (change.field === 'data_vencimento') {
-            // Calculate date difference and apply to future installments
-            const originalDate = parseDateFromYYYYMMDD(change.oldValue);
-            const newDate = parseDateFromYYYYMMDD(change.newValue);
-            const dayDifference = newDate.getDate() - originalDate.getDate();
-            
-            const installmentDate = parseDateFromYYYYMMDD(installment.data_vencimento);
-            installmentDate.setDate(installmentDate.getDate() + dayDifference);
-            updates.data_vencimento = formatDateToYYYYMMDD(installmentDate);
-          } else {
-            updates[change.field] = change.newValue;
-          }
-        }
-        
-        if (Object.keys(updates).length > 0) {
-          await contasReceberServiceExtended.update(installment.id, updates);
-        }
-      }
-      
-      setInstallmentReplicationModal({ 
-        isOpen: false, 
-        originalRecord: null, 
-        updatedRecord: null, 
-        futureInstallments: [] 
-      });
-      setIsModalOpen(false);
-      showSuccess(`Alterações aplicadas a ${futureInstallments.length} parcela(s) futura(s)`);
-      await loadData();
-    } catch (error) {
-      console.error('Erro ao replicar alterações:', error);
-      showError('Erro ao replicar alterações');
     }
   };
 
@@ -754,19 +570,6 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     }
   };
 
-  const handleRecurrenceReplication = async (selectedChanges: any[]) => {
-    // Implementation for recurrence replication
-    console.log('Recurrence replication:', selectedChanges);
-    setRecurrenceReplicationModal({ 
-      isOpen: false, 
-      originalRecord: null, 
-      updatedRecord: null, 
-      futureRecords: [] 
-    });
-    showSuccess('Alterações aplicadas aos registros recorrentes');
-    await loadData();
-  };
-
   const handleInstallmentReplication = async (selectedChanges: any[]) => {
     try {
       const { futureInstallments } = installmentReplicationModal;
@@ -888,52 +691,6 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       id_autorizacao: authorizationId
     }));
     setElectronicDataModal({ isOpen: false, initialData: null });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const dataToSubmit = {
-        ...formData,
-        valor_operacao: parseFloat(formData.valor_operacao) || 0,
-        valor_juros: parseFloat(formData.valor_juros) || 0,
-        valor_multas: parseFloat(formData.valor_multas) || 0,
-        valor_atualizacao: parseFloat(formData.valor_atualizacao) || 0,
-        valor_descontos: parseFloat(formData.valor_descontos) || 0,
-        valor_abto: parseFloat(formData.valor_abto) || 0,
-        valor_pagto: parseFloat(formData.valor_pagto) || 0,
-        valor_parcela: parseFloat(formData.valor_parcela) || 0,
-        total_parcelas: parseInt(formData.total_parcelas) || 1,
-        frequencia_recorrencia: parseInt(formData.frequencia_recorrencia) || 1,
-        termino_apos_ocorrencias: parseInt(formData.termino_apos_ocorrencias) || null,
-        intervalo_ini: parseInt(formData.intervalo_ini) || 0,
-        intervalo_rec: parseInt(formData.intervalo_rec) || 30,
-        categoria_id: formData.categoria_id || null,
-        departamento_id: formData.departamento_id || null,
-        forma_cobranca_id: formData.forma_cobranca_id || null,
-        conta_cobranca_id: formData.conta_cobranca_id || null,
-        tipo_documento_id: formData.tipo_documento_id || null,
-        data_recebimento: formData.data_recebimento || null,
-        periodicidade: formData.periodicidade || null,
-        data_inicio_recorrencia: formData.data_inicio_recorrencia || null,
-        n_docto_origem: formData.n_docto_origem || null,
-        sku_parcela: formData.sku_parcela || null,
-        id_autorizacao: formData.id_autorizacao || null
-      };
-      
-      if (editingConta) {
-        await contasReceberServiceExtended.update(editingConta.id, dataToSubmit);
-        showSuccess('Conta atualizada com sucesso');
-      } else {
-        await contasReceberServiceExtended.create(dataToSubmit);
-        showSuccess('Conta criada com sucesso');
-      }
-      setIsModalOpen(false);
-      await loadData();
-    } catch (error) {
-      console.error('Erro ao salvar conta:', error);
-      showError('Erro ao salvar conta');
-    }
   };
 
   const empresasOptions = empresas.map(emp => ({ value: emp.id, label: emp.nome }));
