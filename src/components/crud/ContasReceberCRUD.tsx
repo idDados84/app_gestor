@@ -436,6 +436,55 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     }
   };
 
+  const handleInstallmentEdit = async (editedInstallmentId: string, originalData: ContaReceber, updatedData: ContaReceber) => {
+    try {
+      // First, update the edited installment in the database
+      const updateData = {
+        sku_parcela: updatedData.sku_parcela,
+        data_vencimento: updatedData.data_vencimento,
+        forma_cobranca_id: updatedData.forma_cobranca_id,
+        conta_cobranca_id: updatedData.conta_cobranca_id,
+        valor_parcela: updatedData.valor_parcela
+      };
+      
+      await contasReceberServiceExtended.update(editedInstallmentId, updateData);
+      
+      // Find all installments in the same series
+      const parentId = originalData.lancamento_pai_id || originalData.id;
+      const allInstallments = contas.filter(c => 
+        c.id === parentId || c.lancamento_pai_id === parentId
+      );
+      
+      // Find future installments (after the edited one)
+      const futureInstallments = allInstallments.filter(c => 
+        c.id !== editedInstallmentId && (
+          new Date(c.data_vencimento) > new Date(updatedData.data_vencimento) ||
+          (new Date(c.data_vencimento).getTime() === new Date(updatedData.data_vencimento).getTime() && 
+           (c.numero_parcela || 0) > (updatedData.numero_parcela || 0))
+        )
+      );
+      
+      // If there are future installments, show replication modal
+      if (futureInstallments.length > 0) {
+        setInstallmentReplicationModal({
+          isOpen: true,
+          originalRecord: originalData,
+          updatedRecord: updatedData,
+          futureInstallments
+        });
+      } else {
+        showSuccess('Parcela atualizada com sucesso');
+      }
+      
+      // Close installment management modal and reload data
+      setInstallmentManagementModal({ isOpen: false, records: [] });
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao atualizar parcela:', error);
+      showError('Erro ao atualizar parcela');
+    }
+  };
+
   const handleElectronicDataSubmit = (data: ElectronicData, authorizationId: string) => {
     setFormData(prev => ({
       ...prev,
@@ -1014,6 +1063,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         isOpen={installmentManagementModal.isOpen}
         onClose={() => setInstallmentManagementModal({ isOpen: false, records: [] })}
         onSave={handleInstallmentManagementSave}
+        onInstallmentEdit={handleInstallmentEdit}
         records={installmentManagementModal.records}
         type="receber"
         contasFinanceiras={contasFinanceiras}
@@ -1029,8 +1079,82 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
           futureInstallments: [] 
         })}
         onConfirm={async (selectedChanges) => {
-          // Implementation for installment replication
-          console.log('Installment replication:', selectedChanges);
+          try {
+            setLoading(true);
+            
+            if (!installmentReplicationModal.originalRecord || !installmentReplicationModal.updatedRecord) {
+              showError('Dados da parcela original não encontrados');
+              return;
+            }
+            
+            const originalRecord = installmentReplicationModal.originalRecord;
+            const updatedRecord = installmentReplicationModal.updatedRecord;
+            const futureInstallments = installmentReplicationModal.futureInstallments;
+            
+            // Filter future installments to only open ones
+            const futureOpenInstallments = futureInstallments.filter(record => {
+              const status = record.status.toLowerCase();
+              return status !== 'recebido' && status !== 'cancelado';
+            });
+            
+            if (futureOpenInstallments.length === 0) {
+              showError('Nenhuma parcela futura em aberto para aplicar as alterações');
+              return;
+            }
+            
+            let updatedCount = 0;
+            
+            // Apply changes to each future open installment
+            for (const futureInstallment of futureOpenInstallments) {
+              const updates: any = {};
+              
+              for (const change of selectedChanges) {
+                if (change.field === 'data_vencimento') {
+                  // For installments, maintain monthly intervals
+                  const originalDate = new Date(originalRecord.data_vencimento);
+                  const updatedDate = new Date(updatedRecord.data_vencimento);
+                  const dayDifference = updatedDate.getDate() - originalDate.getDate();
+                  
+                  const futureDate = new Date(futureInstallment.data_vencimento);
+                  futureDate.setDate(futureDate.getDate() + dayDifference);
+                  
+                  updates.data_vencimento = formatDateToYYYYMMDD(futureDate);
+                } else if (change.field === 'valor_parcela') {
+                  updates.valor_parcela = change.newValue;
+                  updates.valor_operacao = change.newValue;
+                } else {
+                  // Handle other fields generically
+                  let value = change.newValue;
+                  
+                  // Convert empty strings to null for nullable fields
+                  if (value === '' && change.field.includes('_id')) {
+                    value = null;
+                  }
+                  
+                  updates[change.field] = value;
+                }
+              }
+              
+              // Only update if there are actual changes
+              if (Object.keys(updates).length > 0) {
+                await contasReceberServiceExtended.update(futureInstallment.id, updates);
+                updatedCount++;
+              }
+            }
+            
+            if (updatedCount > 0) {
+              showSuccess(`${selectedChanges.length} alteração(ões) aplicada(s) com sucesso a ${updatedCount} parcela(s) futura(s)`);
+            } else {
+              showSuccess('Nenhuma alteração foi necessária - todas as parcelas já estão atualizadas');
+            }
+            
+            await loadData();
+          } catch (error) {
+            console.error('Erro ao replicar alterações nas parcelas:', error);
+            showError(`Erro ao aplicar alterações às parcelas futuras: ${(error as any)?.message || error}`);
+          } finally {
+            setLoading(false);
+          }
           setInstallmentReplicationModal({ 
             isOpen: false, 
             originalRecord: null, 

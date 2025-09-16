@@ -3,7 +3,7 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { Edit3, Save, X, AlertTriangle, Calculator } from 'lucide-react';
+import { Edit3, Save, X, AlertTriangle, Calculator, Check } from 'lucide-react';
 import type { ContaPagar, ContaReceber, ContaFinanceira, FormaCobranca } from '../../types/database';
 import { formatDateToYYYYMMDD, parseDateFromYYYYMMDD } from '../../utils/dateUtils';
 import { calculateInstallmentValues } from '../../utils/financialCalculations';
@@ -23,6 +23,7 @@ interface InstallmentManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (installments: InstallmentData[]) => void;
+  onInstallmentEdit: (editedInstallmentId: string, originalData: ContaPagar | ContaReceber, updatedData: ContaPagar | ContaReceber) => void;
   records: (ContaPagar | ContaReceber)[];
   type: 'pagar' | 'receber';
   contasFinanceiras: ContaFinanceira[];
@@ -34,6 +35,7 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  onInstallmentEdit,
   records,
   type,
   contasFinanceiras,
@@ -41,6 +43,7 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
   loading = false
 }) => {
   const [installments, setInstallments] = useState<InstallmentData[]>([]);
+  const [originalRecords, setOriginalRecords] = useState<(ContaPagar | ContaReceber)[]>([]);
   const [originalTotal, setOriginalTotal] = useState(0);
   const [currentTotal, setCurrentTotal] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -53,6 +56,9 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
         const bNum = b.numero_parcela || 1;
         return aNum - bNum;
       });
+      
+      // Store original records for comparison
+      setOriginalRecords([...sortedRecords]);
 
       const installmentData: InstallmentData[] = sortedRecords.map((record, index) => ({
         id: record.id,
@@ -106,6 +112,41 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
   };
 
   const handleEditToggle = (index: number) => {
+    const currentInstallment = installments[index];
+    const wasEditing = currentInstallment.isEditing;
+    
+    // If we're saving an edit (transitioning from editing to not editing)
+    if (wasEditing) {
+      // Find the original record for this installment
+      const originalRecord = originalRecords.find(r => r.id === currentInstallment.id);
+      
+      if (originalRecord) {
+        // Create updated record with current installment data
+        const updatedRecord = {
+          ...originalRecord,
+          sku_parcela: currentInstallment.skuParcela,
+          data_vencimento: currentInstallment.dueDate,
+          forma_cobranca_id: currentInstallment.collectionMethodId || null,
+          conta_cobranca_id: currentInstallment.collectionAccountId || null,
+          valor_parcela: currentInstallment.amount
+        };
+        
+        // Check if there are actual changes
+        const hasChanges = (
+          originalRecord.sku_parcela !== updatedRecord.sku_parcela ||
+          originalRecord.data_vencimento !== updatedRecord.data_vencimento ||
+          originalRecord.forma_cobranca_id !== updatedRecord.forma_cobranca_id ||
+          originalRecord.conta_cobranca_id !== updatedRecord.conta_cobranca_id ||
+          originalRecord.valor_parcela !== updatedRecord.valor_parcela
+        );
+        
+        if (hasChanges) {
+          // Trigger the replication modal
+          onInstallmentEdit(currentInstallment.id, originalRecord, updatedRecord);
+        }
+      }
+    }
+    
     setInstallments(prev => prev.map((inst, i) => 
       i === index ? { ...inst, isEditing: !inst.isEditing } : inst
     ));
@@ -436,21 +477,24 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
                   </td>
                   
                   <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => handleEditToggle(index)}
-                      className={`p-1 rounded ${
-                        installment.isEditing 
-                          ? 'text-green-600 hover:text-green-800' 
-                          : 'text-blue-600 hover:text-blue-800'
-                      }`}
-                      disabled={loading}
-                    >
-                      {installment.isEditing ? (
-                        <Save className="h-4 w-4" />
-                      ) : (
-                        <Edit3 className="h-4 w-4" />
-                      )}
-                    </button>
+                    <div className="flex justify-center space-x-1">
+                      <button
+                        onClick={() => handleEditToggle(index)}
+                        className={`p-1 rounded ${
+                          installment.isEditing 
+                            ? 'text-green-600 hover:text-green-800' 
+                            : 'text-blue-600 hover:text-blue-800'
+                        }`}
+                        disabled={loading}
+                        title={installment.isEditing ? 'Salvar alterações' : 'Editar parcela'}
+                      >
+                        {installment.isEditing ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Edit3 className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
