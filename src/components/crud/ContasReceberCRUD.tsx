@@ -86,6 +86,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     futureRecords: ContaReceber[];
   }>({ isOpen: false, originalRecord: null, updatedRecord: null, futureRecords: [] });
   const [installmentManagementModal, setInstallmentManagementModal] = useState<{
+  const [isReplicationForRecurring, setIsReplicationForRecurring] = useState(false);
     isOpen: boolean;
     records: ContaReceber[];
     parentId?: string;
@@ -640,8 +641,6 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         return '-';
       }
     }
-  ];
-
   return (
     <div>
       <DataTable
