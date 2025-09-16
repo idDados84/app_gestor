@@ -7,6 +7,7 @@ import Select from '../ui/Select';
 import TagInput from '../ui/TagInput';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import FinancialSummary from '../ui/FinancialSummary';
+import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
 import ElectronicDataModal from '../modals/ElectronicDataModal';
 import MassCancellationModal from '../modals/MassCancellationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
