@@ -86,11 +86,15 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     futureRecords: ContaReceber[];
   }>({ isOpen: false, originalRecord: null, updatedRecord: null, futureRecords: [] });
   const [installmentManagementModal, setInstallmentManagementModal] = useState<{
-  const [isReplicationForRecurring, setIsReplicationForRecurring] = useState(false);
     isOpen: boolean;
     records: ContaReceber[];
     parentId?: string;
   }>({ isOpen: false, records: [] });
+  const [isReplicationForRecurring, setIsReplicationForRecurring] = useState(false);
+  const [isReplicationModalOpen, setIsReplicationModalOpen] = useState(false);
+  const [originalRecordForReplication, setOriginalRecordForReplication] = useState<ContaReceber | null>(null);
+  const [updatedRecordForReplication, setUpdatedRecordForReplication] = useState<ContaReceber | null>(null);
+  const [futureRecordsForReplication, setFutureRecordsForReplication] = useState<ContaReceber[]>([]);
 
   const { showError: internalShowError, showSuccess: internalShowSuccess } = useToast();
   
@@ -498,6 +502,14 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     }));
   };
 
+  const handleConfirmRecurrenceReplication = async (selectedChanges: any[]) => {
+    // Implementation for recurrence replication
+  };
+
+  const handleConfirmInstallmentReplication = async (selectedChanges: any[]) => {
+    // Implementation for installment replication
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -641,6 +653,8 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         return '-';
       }
     }
+  ];
+
   return (
     <div>
       <DataTable
