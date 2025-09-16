@@ -5,7 +5,6 @@ import Input from '../ui/Input';
 import Button from '../ui/Button';
 import Select from '../ui/Select';
 import TagInput from '../ui/TagInput';
-import TagInput from '../ui/TagInput';
 import ElectronicDataModal from '../modals/ElectronicDataModal';
 import MassCancellationModal from '../modals/MassCancellationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
