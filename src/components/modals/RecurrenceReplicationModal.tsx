@@ -13,15 +13,15 @@ interface FieldChange {
   newValue: any;
   selected: boolean;
   description: string;
-  dayDifference?: number; // For date fields
+  newDayOfMonth?: number; // For date fields - the new day to apply
 }
 
 interface RecurrenceReplicationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (selectedChanges: FieldChange[]) => void;
-  originalRecord: ContaPagar | ContaReceber;
-  updatedRecord: ContaPagar | ContaReceber;
+  originalRecord: ContaPagar | ContaReceber | null;
+  updatedRecord: ContaPagar | ContaReceber | null;
   futureRecords: (ContaPagar | ContaReceber)[];
   type: 'pagar' | 'receber';
   loading?: boolean;
@@ -40,34 +40,54 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
   const [fieldChanges, setFieldChanges] = useState<FieldChange[]>([]);
   const [selectAll, setSelectAll] = useState(false);
 
-  // Define replicable fields with their metadata
-  const replicableFields = [
-    { field: 'descricao', label: 'Descrição', icon: FileText, defaultSelected: true },
-    { field: 'valor_operacao', label: 'Valor da Operação', icon: DollarSign, defaultSelected: true },
-    { field: 'valor_parcela', label: 'Valor da Parcela', icon: DollarSign, defaultSelected: true },
-    { field: 'valor_juros', label: 'Juros', icon: DollarSign, defaultSelected: true },
-    { field: 'valor_multas', label: 'Multas', icon: DollarSign, defaultSelected: true },
-    { field: 'valor_atualizacao', label: 'Atualização Monetária', icon: DollarSign, defaultSelected: true },
-    { field: 'valor_descontos', label: 'Descontos', icon: DollarSign, defaultSelected: true },
-    { field: 'valor_abto', label: 'Abatimentos', icon: DollarSign, defaultSelected: true },
-    { field: 'valor_pagto', label: 'Pagamentos Realizados', icon: DollarSign, defaultSelected: true },
-    { field: 'data_vencimento', label: 'Data de Vencimento', icon: Calendar, defaultSelected: true },
-    { field: 'categoria_id', label: 'Categoria', icon: Tag, defaultSelected: true },
-    { field: 'departamento_id', label: 'Departamento', icon: Building, defaultSelected: true },
-    { field: 'forma_cobranca_id', label: 'Forma de Cobrança', icon: CreditCard, defaultSelected: true },
-    { field: 'conta_cobranca_id', label: 'Conta de Cobrança', icon: CreditCard, defaultSelected: true },
-    { field: 'tipo_documento_id', label: 'Tipo de Documento', icon: FileText, defaultSelected: true },
-    { field: 'n_docto_origem', label: 'Nº Documento Origem', icon: Hash, defaultSelected: true },
-    { field: 'sku_parcela', label: 'SKU da Parcela', icon: Hash, defaultSelected: true },
-    { field: 'observacoes', label: 'Observações', icon: FileText, defaultSelected: false },
-    { field: 'periodicidade', label: 'Periodicidade', icon: Clock, defaultSelected: false },
-    { field: 'frequencia_recorrencia', label: 'Frequência de Recorrência', icon: Clock, defaultSelected: false },
-    { field: 'termino_apos_ocorrencias', label: 'Término Após Ocorrências', icon: Clock, defaultSelected: false },
-    { field: 'intervalo_ini', label: 'Intervalo Inicial', icon: Clock, defaultSelected: false },
-    { field: 'intervalo_rec', label: 'Intervalo Recorrente', icon: Clock, defaultSelected: false },
-    { field: 'eh_vencto_fixo', label: 'Vencimento Fixo', icon: Calendar, defaultSelected: false },
-    { field: 'n_doctos_ref', label: 'Documentos de Referência', icon: FileText, defaultSelected: false },
-    { field: 'projetos', label: 'Projetos', icon: MapPin, defaultSelected: false }
+  // Define all replicable fields with their metadata
+  const replicableFieldsConfig = [
+    // Basic info fields
+    { field: 'descricao', label: 'Descrição', icon: FileText, defaultSelected: true, category: 'basic' },
+    
+    // Financial fields
+    { field: 'valor_operacao', label: 'Valor da Operação', icon: DollarSign, defaultSelected: true, category: 'financial' },
+    { field: 'valor_parcela', label: 'Valor da Parcela', icon: DollarSign, defaultSelected: true, category: 'financial' },
+    { field: 'valor_juros', label: 'Juros', icon: DollarSign, defaultSelected: true, category: 'financial' },
+    { field: 'valor_multas', label: 'Multas', icon: DollarSign, defaultSelected: true, category: 'financial' },
+    { field: 'valor_atualizacao', label: 'Atualização Monetária', icon: DollarSign, defaultSelected: true, category: 'financial' },
+    { field: 'valor_descontos', label: 'Descontos', icon: DollarSign, defaultSelected: true, category: 'financial' },
+    { field: 'valor_abto', label: 'Abatimentos', icon: DollarSign, defaultSelected: true, category: 'financial' },
+    { field: 'valor_pagto', label: 'Pagamentos Realizados', icon: DollarSign, defaultSelected: true, category: 'financial' },
+    
+    // Date fields
+    { field: 'data_vencimento', label: 'Data de Vencimento', icon: Calendar, defaultSelected: true, category: 'date' },
+    { field: 'data_pagamento', label: 'Data de Pagamento', icon: Calendar, defaultSelected: false, category: 'date' },
+    { field: 'data_recebimento', label: 'Data de Recebimento', icon: Calendar, defaultSelected: false, category: 'date' },
+    { field: 'data_inicio_recorrencia', label: 'Data Início Recorrência', icon: Calendar, defaultSelected: false, category: 'date' },
+    
+    // Relationship fields
+    { field: 'categoria_id', label: 'Categoria', icon: Tag, defaultSelected: true, category: 'relationship' },
+    { field: 'departamento_id', label: 'Departamento', icon: Building, defaultSelected: true, category: 'relationship' },
+    { field: 'forma_cobranca_id', label: 'Forma de Cobrança', icon: CreditCard, defaultSelected: true, category: 'relationship' },
+    { field: 'conta_cobranca_id', label: 'Conta de Cobrança', icon: CreditCard, defaultSelected: true, category: 'relationship' },
+    { field: 'tipo_documento_id', label: 'Tipo de Documento', icon: FileText, defaultSelected: true, category: 'relationship' },
+    { field: 'empresa_id', label: 'Empresa', icon: Building, defaultSelected: false, category: 'relationship' },
+    { field: 'fornecedor_id', label: 'Fornecedor', icon: User, defaultSelected: false, category: 'relationship' },
+    { field: 'cliente_id', label: 'Cliente', icon: User, defaultSelected: false, category: 'relationship' },
+    
+    // Document fields
+    { field: 'n_docto_origem', label: 'Nº Documento Origem', icon: Hash, defaultSelected: true, category: 'document' },
+    { field: 'sku_parcela', label: 'SKU da Parcela', icon: Hash, defaultSelected: true, category: 'document' },
+    { field: 'n_doctos_ref', label: 'Documentos de Referência', icon: FileText, defaultSelected: false, category: 'document' },
+    { field: 'projetos', label: 'Projetos', icon: MapPin, defaultSelected: false, category: 'document' },
+    
+    // Configuration fields
+    { field: 'periodicidade', label: 'Periodicidade', icon: Clock, defaultSelected: false, category: 'config' },
+    { field: 'frequencia_recorrencia', label: 'Frequência de Recorrência', icon: Clock, defaultSelected: false, category: 'config' },
+    { field: 'termino_apos_ocorrencias', label: 'Término Após Ocorrências', icon: Clock, defaultSelected: false, category: 'config' },
+    { field: 'intervalo_ini', label: 'Intervalo Inicial', icon: Clock, defaultSelected: false, category: 'config' },
+    { field: 'intervalo_rec', label: 'Intervalo Recorrente', icon: Clock, defaultSelected: false, category: 'config' },
+    { field: 'eh_vencto_fixo', label: 'Vencimento Fixo', icon: Calendar, defaultSelected: false, category: 'config' },
+    
+    // Text fields
+    { field: 'observacoes', label: 'Observações', icon: FileText, defaultSelected: false, category: 'text' },
+    { field: 'id_autorizacao', label: 'ID Autorização', icon: Hash, defaultSelected: false, category: 'text' }
   ];
 
   // Helper function to normalize values for comparison
@@ -101,26 +121,34 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
     if (field.includes('valor_') && typeof value === 'number') {
       return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
     }
-    if (field === 'data_vencimento' && typeof value === 'string') {
-      const date = parseDateFromYYYYMMDD(value);
-      return date.toLocaleDateString('pt-BR');
+    if (field.includes('data_') && typeof value === 'string') {
+      try {
+        const date = parseDateFromYYYYMMDD(value);
+        return date.toLocaleDateString('pt-BR');
+      } catch {
+        return value;
+      }
     }
     if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
     return String(value);
   };
 
+  // Helper function to get appropriate icon for field
+  const getFieldIcon = (field: string, category: string) => {
+    const fieldConfig = replicableFieldsConfig.find(config => config.field === field);
+    return fieldConfig?.icon || FileText;
+  };
+
   // Helper function to create description for field changes
-  const createFieldDescription = (fieldMeta: any, oldValue: any, newValue: any, dayDifference?: number): string => {
-    const { field, label } = fieldMeta;
-    
+  const createFieldDescription = (field: string, label: string, oldValue: any, newValue: any, newDayOfMonth?: number): string => {
     switch (field) {
       case 'data_vencimento':
-        if (dayDifference !== undefined) {
+        if (newDayOfMonth !== undefined) {
           const oldDate = parseDateFromYYYYMMDD(oldValue);
           const newDate = parseDateFromYYYYMMDD(newValue);
           const oldDay = oldDate.getDate();
           const newDay = newDate.getDate();
-          return `Atualizar a data de vencimento dos próximos registros para o dia "${newDay}" de cada período? (anterior: dia ${oldDay})`;
+          return `Atualizar o dia de vencimento dos próximos registros para o dia "${newDay}" de cada período? (anterior: dia ${oldDay})`;
         }
         return `Atualizar a data de vencimento dos próximos registros?`;
       case 'valor_parcela':
@@ -139,22 +167,23 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
     if (isOpen && originalRecord && updatedRecord) {
       const changes: FieldChange[] = [];
 
-      // Iterate through all replicable fields
-      for (const fieldMeta of replicableFields) {
-        const { field, label, icon, defaultSelected } = fieldMeta;
+      // Iterate through all replicable fields dynamically
+      for (const fieldConfig of replicableFieldsConfig) {
+        const { field, label, defaultSelected, category } = fieldConfig;
         const oldValue = originalRecord[field as keyof typeof originalRecord];
         const newValue = updatedRecord[field as keyof typeof updatedRecord];
 
         // Check if values are different
         if (areValuesDifferent(oldValue, newValue)) {
-          let dayDifference: number | undefined;
+          let newDayOfMonth: number | undefined;
           
-          // Special handling for date fields
-          if (field === 'data_vencimento') {
-            const oldDate = parseDateFromYYYYMMDD(oldValue as string);
-            const newDate = parseDateFromYYYYMMDD(newValue as string);
-            dayDifference = newDate.getDate() - oldDate.getDate();
+          // Special handling for date fields - extract day of month for replication
+          if (field === 'data_vencimento' && typeof newValue === 'string') {
+            const newDate = parseDateFromYYYYMMDD(newValue);
+            newDayOfMonth = newDate.getDate();
           }
+
+          const icon = getFieldIcon(field, category);
 
           changes.push({
             field,
@@ -163,8 +192,8 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
             oldValue,
             newValue,
             selected: defaultSelected,
-            description: createFieldDescription(fieldMeta, oldValue, newValue, dayDifference),
-            dayDifference
+            description: createFieldDescription(field, label, oldValue, newValue, newDayOfMonth),
+            newDayOfMonth
           });
         }
       }
@@ -208,6 +237,26 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
     return null; // Don't show modal if no changes detected
   }
 
+  // Group changes by category for better organization
+  const groupedChanges = fieldChanges.reduce((groups, change) => {
+    const fieldConfig = replicableFieldsConfig.find(config => config.field === change.field);
+    const category = fieldConfig?.category || 'other';
+    if (!groups[category]) groups[category] = [];
+    groups[category].push(change);
+    return groups;
+  }, {} as Record<string, FieldChange[]>);
+
+  const categoryLabels = {
+    basic: 'Informações Básicas',
+    financial: 'Valores Financeiros',
+    date: 'Datas',
+    relationship: 'Relacionamentos',
+    document: 'Documentos',
+    config: 'Configurações',
+    text: 'Textos',
+    other: 'Outros'
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -233,6 +282,24 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
           </div>
         </div>
 
+        {/* Special note for date changes */}
+        {fieldChanges.some(change => change.field === 'data_vencimento') && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <Calendar className="h-5 w-5 text-yellow-400 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <h4 className="text-sm font-medium text-yellow-800">
+                  Atenção: Alteração de Data de Vencimento
+                </h4>
+                <p className="text-sm text-yellow-700 mt-1">
+                  A data de vencimento será alterada aplicando o <strong>novo dia do mês</strong> a todos os registros futuros, 
+                  preservando o mês e ano originais de cada registro. Para meses com menos dias, será usado o último dia disponível.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Select All Controls */}
         <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
           <button
@@ -252,68 +319,77 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
           </span>
         </div>
 
-        {/* Changes List */}
-        <div className="space-y-3 max-h-96 overflow-y-auto">
-          {fieldChanges.map((change, index) => {
-            const Icon = change.icon;
-            return (
-              <div
-                key={change.field}
-                className={`border rounded-lg p-4 transition-colors ${
-                  change.selected ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'
-                }`}
-              >
-                <div className="flex items-start">
-                  <button
-                    onClick={() => handleFieldToggle(index)}
-                    className="mt-1 mr-3 flex-shrink-0"
-                    disabled={loading}
+        {/* Changes List - Grouped by Category */}
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {Object.entries(groupedChanges).map(([category, changes]) => (
+            <div key={category} className="space-y-2">
+              <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-1">
+                {categoryLabels[category as keyof typeof categoryLabels] || category}
+              </h4>
+              
+              {changes.map((change, index) => {
+                const globalIndex = fieldChanges.findIndex(fc => fc.field === change.field);
+                const Icon = change.icon;
+                return (
+                  <div
+                    key={change.field}
+                    className={`border rounded-lg p-4 transition-colors ${
+                      change.selected ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'
+                    }`}
                   >
-                    {change.selected ? (
-                      <CheckSquare className="h-5 w-5 text-blue-600" />
-                    ) : (
-                      <Square className="h-5 w-5 text-gray-400" />
-                    )}
-                  </button>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <Icon className="h-4 w-4 mr-2 text-gray-500" />
-                      <h4 className="text-sm font-medium text-gray-900">
-                        {change.label}
-                      </h4>
-                    </div>
-                    
-                    <p className="text-sm text-gray-700 mb-2">
-                      {change.description}
-                    </p>
-                    
-                    {/* Value comparison */}
-                    <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
-                      <span className="line-through text-red-600">
-                        {formatValueForDisplay(change.oldValue, change.field)}
-                      </span>
-                      {' → '}
-                      <span className="text-green-600 font-medium">
-                        {formatValueForDisplay(change.newValue, change.field)}
-                      </span>
+                    <div className="flex items-start">
+                      <button
+                        onClick={() => handleFieldToggle(globalIndex)}
+                        className="mt-1 mr-3 flex-shrink-0"
+                        disabled={loading}
+                      >
+                        {change.selected ? (
+                          <CheckSquare className="h-5 w-5 text-blue-600" />
+                        ) : (
+                          <Square className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center mb-2">
+                          <Icon className="h-4 w-4 mr-2 text-gray-500" />
+                          <h4 className="text-sm font-medium text-gray-900">
+                            {change.label}
+                          </h4>
+                        </div>
+                        
+                        <p className="text-sm text-gray-700 mb-2">
+                          {change.description}
+                        </p>
+                        
+                        {/* Value comparison */}
+                        <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
+                          <span className="line-through text-red-600">
+                            {formatValueForDisplay(change.oldValue, change.field)}
+                          </span>
+                          {' → '}
+                          <span className="text-green-600 font-medium">
+                            {formatValueForDisplay(change.newValue, change.field)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         {/* Summary */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-start">
-            <Info className="h-5 w-5 text-yellow-400 mt-0.5 mr-3 flex-shrink-0" />
+            <Info className="h-5 w-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" />
             <div>
-              <h4 className="text-sm font-medium text-yellow-800">
+              <h4 className="text-sm font-medium text-green-800">
                 Resumo da Operação
               </h4>
-              <p className="text-sm text-yellow-700 mt-1">
+              <p className="text-sm text-green-700 mt-1">
                 {selectedCount > 0 ? (
                   <>
                     {selectedCount} alteração(ões) será(ão) aplicada(s) a {futureOpenRecords.length} registro(s) 
@@ -324,7 +400,7 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
                 )}
               </p>
               {futureOpenRecords.length > 0 && selectedCount > 0 && (
-                <p className="text-xs text-yellow-600 mt-2">
+                <p className="text-xs text-green-600 mt-2">
                   Registros que serão afetados: {futureOpenRecords.length} de {futureRecords.length} total
                 </p>
               )}

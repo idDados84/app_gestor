@@ -1081,10 +1081,19 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
               const updates: any = {};
               
               for (const change of selectedChanges) {
-                if (change.field === 'data_vencimento' && change.dayDifference !== undefined) {
-                  // Apply date difference to maintain relative spacing
+                if (change.field === 'data_vencimento' && change.newDayOfMonth !== undefined) {
+                  // Apply new day of month to future record, preserving month and year
                   const currentDate = parseDateFromYYYYMMDD(futureRecord.data_vencimento);
-                  currentDate.setDate(currentDate.getDate() + change.dayDifference);
+                  const targetDay = change.newDayOfMonth;
+                  
+                  // Get the last day of the current month
+                  const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+                  
+                  // Use the target day or the last day of the month if target day doesn't exist
+                  const finalDay = Math.min(targetDay, lastDayOfMonth);
+                  
+                  // Set the new day while preserving month and year
+                  currentDate.setDate(finalDay);
                   updates.data_vencimento = formatDateToYYYYMMDD(currentDate);
                 } else if (change.field === 'valor_parcela') {
                   // Keep valor_parcela and valor_operacao in sync
@@ -1097,9 +1106,23 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
                   // Convert empty strings to null for nullable fields
                   if (value === '' && (
                     change.field.includes('_id') || 
-                    ['observacoes', 'n_docto_origem', 'sku_parcela', 'periodicidade'].includes(change.field)
+                    ['observacoes', 'n_docto_origem', 'sku_parcela', 'periodicidade', 'id_autorizacao'].includes(change.field)
                   )) {
                     value = null;
+                  }
+                  
+                  // Convert string numbers to actual numbers for numeric fields
+                  if (change.field.includes('valor_') || 
+                      ['frequencia_recorrencia', 'termino_apos_ocorrencias', 'intervalo_ini', 'intervalo_rec'].includes(change.field)) {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue)) {
+                      value = numValue;
+                    }
+                  }
+                  
+                  // Convert string booleans to actual booleans
+                  if (change.field === 'eh_vencto_fixo' && typeof value === 'string') {
+                    value = value === 'true';
                   }
                   
                   updates[change.field] = value;
@@ -1116,7 +1139,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
             if (updatedCount > 0) {
               showSuccess(`${selectedChanges.length} alteração(ões) aplicada(s) com sucesso a ${updatedCount} registro(s) recorrente(s) futuro(s)`);
             } else {
-              showError('Nenhuma alteração foi aplicada');
+              showSuccess('Nenhuma alteração foi necessária - todos os registros já estão atualizados');
             }
             
             await loadData();
