@@ -254,42 +254,6 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       conta_cobranca_id: '',
       tipo_documento_id: '',
       descricao: '',
-      valor_operacao: '',
-      valor_juros: '',
-      valor_multas: '',
-      valor_atualizacao: '',
-      valor_descontos: '',
-      valor_abto: '',
-      valor_pagto: '',
-      valor_parcela: '',
-      status: 'pendente',
-      data_vencimento: '',
-      data_recebimento: '',
-      observacoes: '',
-      dados_ele: null,
-      id_autorizacao: '',
-      eh_parcelado: false,
-      total_parcelas: '',
-      eh_recorrente: false,
-      periodicidade: '',
-      frequencia_recorrencia: '',
-      data_inicio_recorrencia: '',
-      termino_apos_ocorrencias: '',
-      n_docto_origem: '',
-      n_doctos_ref: [],
-      projetos: [],
-      sku_parcela: '',
-      intervalo_ini: '',
-      intervalo_rec: '',
-      eh_vencto_fixo: false
-    });
-  };
-
-  const handleAdd = () => {
-    setEditingConta(null);
-    resetFormData();
-    setIsModalOpen(true);
-  };
 
   const handleEdit = (conta: ContaReceber) => {
     // Check if this record is part of a series (installments or recurring)
