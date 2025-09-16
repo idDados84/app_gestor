@@ -68,6 +68,7 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     records: ContaPagar[];
     parentId?: string;
   }>({ isOpen: false, records: [] });
+  const [selectedRecordForModal, setSelectedRecordForModal] = useState<ContaPagar | null>(null);
   const [electronicDataModal, setElectronicDataModal] = useState<{
     isOpen: boolean;
     data: ElectronicData | null;
@@ -362,6 +363,7 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
 
   const handleManageInstallments = async (conta: ContaPagar) => {
     try {
+      setSelectedRecordForModal(conta);
       // Find all related installments
       const parentId = conta.lancamento_pai_id || conta.id;
       console.log('handleManageInstallments - Record:', conta);
@@ -1063,6 +1065,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
         type="pagar"
         contasFinanceiras={contasFinanceiras}
         formasCobranca={formasCobranca}
+        isRecurringSeries={Boolean(selectedRecordForModal?.eh_recorrente)}
+        loading={false}
       />
 
       <ElectronicDataModal

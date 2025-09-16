@@ -68,6 +68,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     records: ContaReceber[];
     parentId?: string;
   }>({ isOpen: false, records: [] });
+  const [selectedRecordForModal, setSelectedRecordForModal] = useState<ContaReceber | null>(null);
   const [electronicDataModal, setElectronicDataModal] = useState<{
     isOpen: boolean;
     data: ElectronicData | null;
@@ -362,6 +363,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
 
   const handleManageInstallments = async (conta: ContaReceber) => {
     try {
+      setSelectedRecordForModal(conta);
       // Find all related installments
       const parentId = conta.lancamento_pai_id || conta.id;
       console.log('handleManageInstallments - Record:', conta);
@@ -1070,6 +1072,8 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         type="receber"
         contasFinanceiras={contasFinanceiras}
         formasCobranca={formasCobranca}
+        isRecurringSeries={Boolean(selectedRecordForModal?.eh_recorrente)}
+        loading={false}
       />
 
       <InstallmentReplicationModal
