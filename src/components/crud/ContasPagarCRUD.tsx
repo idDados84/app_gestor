@@ -404,10 +404,10 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       n_docto_origem: conta.n_docto_origem || '',
       sku_parcela: conta.sku_parcela || '',
       intervalo_ini: conta.intervalo_ini || 0,
-      intervalo_rec: conta.intervalo_rec || 30,
-    });
+      valor_financeiro: conta.valor_financeiro || 0,
       n_doctos_ref: conta.n_doctos_ref || [],
-      projetos: conta.projetos || [],
+      projetos: conta.projetos || []
+    });
   };
 
   const handleDelete = async (conta: ContaPagar) => {
