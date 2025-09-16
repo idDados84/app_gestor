@@ -1,4 +1,5 @@
 // Utilitários para cálculos financeiros
+import { supabase } from '../lib/supabase';
 
 export interface FinancialValues {
   valor_operacao: number;
@@ -105,4 +106,69 @@ export function exemploCalculoFinanceiro(): {
   const validacao = { somaCalculada, diferenca, isValid };
 
   return { valores, valorFinanceiro, distribuicao, validacao };
+}
+
+/**
+ * Generates SKU for new financial records
+ * Format: XX-YYYYYY-Z-AA-BB
+ * XX = código do tipo de documento (2 dígitos)
+ * YYYYYY = número do documento origem (6 dígitos)
+ * Z = quantidade de parcelas/ocorrências (1 dígito)
+ * AA = número da parcela/ocorrência (2 dígitos)
+ * BB = 2 últimos dígitos do documento do participante
+ */
+export async function generateSkuForNewRecord(
+  tipoDocumentoId: string | null,
+  nDoctoOrigem: string | null,
+  participantId: string,
+  currentInstallmentNum: number,
+  totalInstallmentsInSeries: number
+): Promise<string> {
+  try {
+    // Get document type code
+    let docTypeCode = 'DOC';
+    if (tipoDocumentoId) {
+      const { data: tipoDoc } = await supabase
+        .from('tipos_documentos')
+        .select('codigo_tipo')
+        .eq('id', tipoDocumentoId)
+        .single();
+      
+      if (tipoDoc?.codigo_tipo) {
+        docTypeCode = tipoDoc.codigo_tipo;
+      }
+    }
+    
+    // Get participant document
+    let participantDoc = '';
+    const { data: participant } = await supabase
+      .from('participantes')
+      .select('documento')
+      .eq('id', participantId)
+      .single();
+    
+    if (participant?.documento) {
+      participantDoc = participant.documento;
+    }
+    
+    // Format components
+    const docTypeFormatted = docTypeCode.padStart(2, '0');
+    const originDocFormatted = (nDoctoOrigem || participantId.substring(0, 6)).padStart(6, '0');
+    const totalParcelasFormatted = totalInstallmentsInSeries.toString().padStart(1, '0');
+    const numeroParcelaFormatted = currentInstallmentNum.toString().padStart(2, '0');
+    
+    // Get last 2 digits from participant document
+    const numericDoc = participantDoc.replace(/\D/g, '');
+    const lastTwoDigits = numericDoc.length >= 2 ? numericDoc.slice(-2) : '00';
+    
+    // Generate SKU
+    return `${docTypeFormatted}-${originDocFormatted}-${totalParcelasFormatted}-${numeroParcelaFormatted}-${lastTwoDigits}`;
+  } catch (error) {
+    console.error('Error generating SKU:', error);
+    // Fallback SKU generation
+    const fallbackOrigin = (nDoctoOrigem || participantId.substring(0, 6)).padStart(6, '0');
+    const totalFormatted = totalInstallmentsInSeries.toString().padStart(1, '0');
+    const currentFormatted = currentInstallmentNum.toString().padStart(2, '0');
+    return `DOC-${fallbackOrigin}-${totalFormatted}-${currentFormatted}-00`;
+  }
 }

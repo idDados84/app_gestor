@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { formatDateToYYYYMMDD, parseDateFromYYYYMMDD } from '../utils/dateUtils';
-import { calculateInstallmentValues, calculateValorFinanceiro } from '../utils/financialCalculations';
+import { calculateInstallmentValues, calculateValorFinanceiro, generateSkuForNewRecord } from '../utils/financialCalculations';
 
 // Helper function to check if Supabase is properly configured
 const isSupabaseConfigured = () => {
