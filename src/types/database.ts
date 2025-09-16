@@ -150,8 +150,8 @@ export interface ContaPagar {
   data_inicio_recorrencia?: string; // Date string
   termino_apos_ocorrencias?: number;
   n_docto_origem?: string;
-  n_doctos_ref?: string[];
-  projetos?: string[];
+  n_doctos_ref?: string[] | null;
+  projetos?: string[] | null;
   sku_parcela?: string;
   intervalo_ini?: number;
   intervalo_rec?: number;
@@ -161,6 +161,7 @@ export interface ContaPagar {
   categorias?: Categoria;
   departamentos?: Departamento;
   formas_cobranca?: FormaCobranca;
+  tipos_documentos?: TipoDocumento;
 }
 
 export interface ContaReceber {
@@ -202,8 +203,8 @@ export interface ContaReceber {
   data_inicio_recorrencia?: string; // Date string
   termino_apos_ocorrencias?: number;
   n_docto_origem?: string;
-  n_doctos_ref?: string[];
-  projetos?: string[];
+  n_doctos_ref?: string[] | null;
+  projetos?: string[] | null;
   sku_parcela?: string;
   intervalo_ini?: number;
   intervalo_rec?: number;
@@ -213,6 +214,7 @@ export interface ContaReceber {
   categorias?: Categoria;
   departamentos?: Departamento;
   formas_cobranca?: FormaCobranca;
+  tipos_documentos?: TipoDocumento;
 }
 
 export interface ContaFinanceira {

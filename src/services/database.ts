@@ -260,7 +260,8 @@ export const contasPagarServiceExtended = {
         participantes!contas_pagar_fornecedor_id_fkey(*), 
         categorias(*), 
         departamentos(*), 
-        formas_cobranca(*)
+        formas_cobranca(*),
+        tipos_documentos(*)
       `)
       .is('deleted_at', null);
     
@@ -281,7 +282,8 @@ export const contasPagarServiceExtended = {
         participantes!contas_pagar_fornecedor_id_fkey(*), 
         categorias(*), 
         departamentos(*), 
-        formas_cobranca(*)
+        formas_cobranca(*),
+        tipos_documentos(*)
       `)
       .eq('status', status)
       .is('deleted_at', null);
@@ -522,7 +524,8 @@ export const contasReceberServiceExtended = {
         participantes!contas_receber_cliente_id_fkey(*), 
         categorias(*), 
         departamentos(*), 
-        formas_cobranca(*)
+        formas_cobranca(*),
+        tipos_documentos(*)
       `)
       .is('deleted_at', null);
     
@@ -550,7 +553,8 @@ export const contasReceberServiceExtended = {
         participantes!contas_receber_cliente_id_fkey(*), 
         categorias(*), 
         departamentos(*), 
-        formas_cobranca(*)
+        formas_cobranca(*),
+        tipos_documentos(*)
       `)
       .eq('status', status)
       .is('deleted_at', null);

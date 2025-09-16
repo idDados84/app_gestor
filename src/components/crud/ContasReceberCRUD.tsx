@@ -12,7 +12,6 @@ import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
 import FinancialSummary from '../ui/FinancialSummary';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
-import { formatDateForInput } from '../../utils/dateUtils';
 import { calculateValorFinanceiro } from '../../utils/financialCalculations';
 import { 
   contasReceberServiceExtended, 
@@ -93,6 +92,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
   // Use external toast functions if provided, otherwise use internal ones
   const showError = externalShowError || internalShowError;
   const showSuccess = externalShowSuccess || internalShowSuccess;
+  
   const [formData, setFormData] = useState({
     empresa_id: '',
     cliente_id: '',
@@ -116,11 +116,9 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     data_vencimento: '',
     data_recebimento: '',
     observacoes: '',
-    dados_ele: null as ElectronicData | null,
-    id_autorizacao: '',
-    eh_parcelado: false,
-    total_parcelas: 1,
     numero_parcela: 1,
+    total_parcelas: 1,
+    eh_parcelado: false,
     lancamento_pai_id: '',
     eh_recorrente: false,
     periodicidade: 'mensal',
@@ -128,10 +126,11 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     data_inicio_recorrencia: '',
     termino_apos_ocorrencias: 0,
     n_docto_origem: '',
+    n_doctos_ref: '',
+    projetos: '',
     sku_parcela: '',
     intervalo_ini: 0,
     intervalo_rec: 30,
-    eh_vencto_fixo: false,
   });
 
   const columns = [
@@ -218,7 +217,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       render: (value: any) => value?.nome || '-'
     },
     {
-      key: 'valor' as keyof ContaReceber,
+      key: 'valor_parcela' as keyof ContaReceber,
       header: 'Valor',
       render: (value: number, item: ContaReceber) => `R$ ${(item.valor_parcela || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
     },
@@ -350,11 +349,9 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       data_vencimento: '',
       data_recebimento: '',
       observacoes: '',
-      dados_ele: null,
-      id_autorizacao: '',
-      eh_parcelado: false,
-      total_parcelas: 1,
       numero_parcela: 1,
+      total_parcelas: 1,
+      eh_parcelado: false,
       lancamento_pai_id: '',
       eh_recorrente: false,
       periodicidade: 'mensal',
@@ -362,10 +359,11 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       data_inicio_recorrencia: '',
       termino_apos_ocorrencias: 0,
       n_docto_origem: '',
+      n_doctos_ref: '',
+      projetos: '',
       sku_parcela: '',
       intervalo_ini: 0,
       intervalo_rec: 30,
-      eh_vencto_fixo: false,
     });
     setCurrentElectronicData(null);
     setIsModalOpen(true);
@@ -395,11 +393,9 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       data_vencimento: conta.data_vencimento,
       data_recebimento: conta.data_recebimento || '',
       observacoes: conta.observacoes || '',
-      dados_ele: conta.dados_ele || null,
-      id_autorizacao: conta.id_autorizacao || '',
-      eh_parcelado: conta.eh_parcelado || false,
-      total_parcelas: conta.total_parcelas || 1,
       numero_parcela: conta.numero_parcela || 1,
+      total_parcelas: conta.total_parcelas || 1,
+      eh_parcelado: conta.eh_parcelado || false,
       lancamento_pai_id: conta.lancamento_pai_id || '',
       eh_recorrente: conta.eh_recorrente || false,
       periodicidade: conta.periodicidade || 'mensal',
@@ -407,10 +403,11 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       data_inicio_recorrencia: formatDateForInput(conta.data_inicio_recorrencia),
       termino_apos_ocorrencias: conta.termino_apos_ocorrencias || 0,
       n_docto_origem: conta.n_docto_origem || '',
+      n_doctos_ref: conta.n_doctos_ref?.join(', ') || '',
+      projetos: conta.projetos?.join(', ') || '',
       sku_parcela: conta.sku_parcela || '',
       intervalo_ini: conta.intervalo_ini || 0,
       intervalo_rec: conta.intervalo_rec || 30,
-      eh_vencto_fixo: conta.eh_vencto_fixo || false,
     });
     setCurrentElectronicData(conta.dados_ele || null);
     setIsModalOpen(true);
@@ -520,6 +517,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       showError('Erro ao carregar registros de recorrência para gerenciamento');
     }
   };
+
   const handleInstallmentSave = async (installments: any[]) => {
     if (installments.length === 0) return;
     
@@ -590,7 +588,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         valor_multas: parseFloat(formData.valor_multas) || 0,
         valor_atualizacao: parseFloat(formData.valor_atualizacao) || 0,
         valor_descontos: parseFloat(formData.valor_descontos) || 0,
-        valor_abto: formData.valor_abto ? parseFloat(formData.valor_abto) : undefined,
+        valor_abto: parseFloat(formData.valor_abto) || 0,
         valor_pagto: parseFloat(formData.valor_pagto) || 0,
         // valor_parcela será calculado automaticamente no parcelamento
         // Para registros únicos, usar o valor_financeiro calculado
@@ -603,14 +601,6 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
           valor_abto: parseFloat(formData.valor_abto) || 0,
           valor_pagto: parseFloat(formData.valor_pagto) || 0
         }),
-        categoria_id: formData.categoria_id || null,
-        departamento_id: formData.departamento_id || null,
-        forma_cobranca_id: formData.forma_cobranca_id || null,
-        data_recebimento: formData.data_recebimento || null,
-        dados_ele: formData.dados_ele,
-        id_autorizacao: formData.id_autorizacao || null,
-        eh_parcelado: formData.eh_parcelado,
-        total_parcelas: formData.eh_parcelado ? formData.total_parcelas : null,
         numero_parcela: formData.eh_parcelado ? formData.numero_parcela : null,
         lancamento_pai_id: formData.lancamento_pai_id || null,
         eh_recorrente: formData.eh_recorrente,
@@ -618,6 +608,8 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         frequencia_recorrencia: formData.eh_recorrente ? formData.frequencia_recorrencia : null,
         data_inicio_recorrencia: formData.eh_recorrente ? (formData.data_inicio_recorrencia || null) : null,
         termino_apos_ocorrencias: formData.eh_recorrente ? formData.termino_apos_ocorrencias : null,
+        n_doctos_ref: formData.n_doctos_ref ? formData.n_doctos_ref.split(',').map(s => s.trim()).filter(s => s) : null,
+        projetos: formData.projetos ? formData.projetos.split(',').map(s => s.trim()).filter(s => s) : null,
       };
       
       // Filter out properties with empty string values, but preserve null values and boolean/number fields
@@ -629,6 +621,10 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
           }
           // Include null values (they're valid for optional fields)
           if (value === null) {
+            return true;
+          }
+          // Include arrays (like n_doctos_ref and projetos)
+          if (Array.isArray(value)) {
             return true;
           }
           // Include objects (like dados_ele)
@@ -766,8 +762,8 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
               updates.data_vencimento = futureDate.toISOString().split('T')[0];
               break;
               
-            case 'valor':
-              updates.valor = updatedRecord!.valor;
+            case 'valor_parcela':
+              updates.valor_parcela = updatedRecord!.valor_parcela;
               break;
               
             case 'descricao':
@@ -866,8 +862,14 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
     }
   };
 
+  const formatDateForInput = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+    // Assume dateString is in YYYY-MM-DD format
+    return dateString.split('T')[0];
+  };
+
   const empresasOptions = empresas.map(emp => ({ value: emp.id, label: emp.nome }));
-  const clientesOptions = clientes.map(cli => ({ value: cli.id, label: cli.nome }));
+  const clientesOptions = clientes.map(cliente => ({ value: cliente.id, label: cliente.nome }));
   const categoriasOptions = categorias.map(cat => ({ value: cat.id, label: cat.nome }));
   const departamentosOptions = departamentos.map(dep => ({ value: dep.id, label: dep.nome }));
   const formasOptions = formasCobranca.map(forma => ({ value: forma.id, label: forma.nome }));
@@ -1051,6 +1053,63 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
               onChange={(e) => setFormData({ ...formData, data_recebimento: e.target.value })}
             />
             
+            <Input
+              label="Nº Documento Origem"
+              value={formData.n_docto_origem}
+              onChange={(e) => setFormData({ ...formData, n_docto_origem: e.target.value })}
+              placeholder="Ex: 12345"
+            />
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nº Documentos Referência
+              </label>
+              <textarea
+                value={formData.n_doctos_ref}
+                onChange={(e) => setFormData({ ...formData, n_doctos_ref: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                rows={2}
+                placeholder="Ex: 12345, 67890, 11111 (separados por vírgula)"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Projetos
+              </label>
+              <textarea
+                value={formData.projetos}
+                onChange={(e) => setFormData({ ...formData, projetos: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                rows={2}
+                placeholder="Ex: Projeto A, Projeto B, Projeto C (separados por vírgula)"
+              />
+            </div>
+            
+            <Input
+              label="SKU da Parcela"
+              value={formData.sku_parcela}
+              onChange={(e) => setFormData({ ...formData, sku_parcela: e.target.value })}
+              placeholder="Auto-gerado"
+              disabled
+            />
+            
+            <Input
+              label="Intervalo Inicial (dias)"
+              type="number"
+              value={formData.intervalo_ini.toString()}
+              onChange={(e) => setFormData({ ...formData, intervalo_ini: parseInt(e.target.value) || 0 })}
+              min="0"
+            />
+            
+            <Input
+              label="Intervalo Recorrente (dias)"
+              type="number"
+              value={formData.intervalo_rec.toString()}
+              onChange={(e) => setFormData({ ...formData, intervalo_rec: parseInt(e.target.value) || 30 })}
+              min="1"
+            />
+            
             <div className="col-span-2">
               <Button 
                 type="button" 
@@ -1093,18 +1152,6 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
                 required
               />
             )}
-            
-            <div className="col-span-2">
-              <label className="inline-flex items-center">
-                <input
-                  type="checkbox"
-                  className="form-checkbox h-4 w-4 text-blue-600"
-                  checked={formData.eh_vencto_fixo}
-                  onChange={(e) => setFormData({ ...formData, eh_vencto_fixo: e.target.checked })}
-                />
-                <span className="ml-2 text-sm font-medium text-gray-700">Vencimento Fixo?</span>
-              </label>
-            </div>
             
             <div className="col-span-2">
               <label className="inline-flex items-center">

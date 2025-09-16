@@ -80,17 +80,23 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
   }, [installments]);
 
   const generateSKU = (record: ContaPagar | ContaReceber, installmentNum: number, totalInstallments: number): string => {
-    // Get document type code (first 3 digits) - fallback to 'DOC' if not available
-    const docTypeCode = record.tipo_documento_id?.substring(0, 3) || 'DOC';
+    // Get document type code - fallback to 'DOC' if not available
+    const docTypeCode = record.tipos_documentos?.codigo_tipo || 'DOC';
     
     // Get origin document number - fallback to record ID substring
     const originDoc = record.n_docto_origem || record.id.substring(0, 8);
     
+    // Format installment info: total parcelas + numero da parcela
+    const installmentInfo = `${totalInstallments}${installmentNum.toString().padStart(2, '0')}`;
+    
     // Get participant document last 2 digits - fallback to '00'
     const participantDoc = record.participantes?.documento || '';
-    const lastTwoDigits = participantDoc.length >= 2 ? participantDoc.slice(-2) : '00';
+    // Remove all non-numeric characters and get last 2 digits
+    const numericDoc = participantDoc.replace(/\D/g, '');
+    const lastTwoDigits = numericDoc.length >= 2 ? numericDoc.slice(-2) : '00';
     
-    return `${docTypeCode}_${originDoc}-${installmentNum}-${totalInstallments}_${lastTwoDigits}`;
+    // New format: código do tipo de documento + n do documento origem + qtde de parcelas + n da parcela + 2 últimos dígitos do participante
+    return `${docTypeCode}${originDoc}${installmentInfo}${lastTwoDigits}`;
   };
 
   const handleEditToggle = (index: number) => {
