@@ -9,7 +9,6 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import FinancialSummary from '../ui/FinancialSummary';
 import ElectronicDataModal from '../modals/ElectronicDataModal';
 import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
-import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
 import { useToast } from '../../hooks/useToast';
 import { Settings, Edit } from 'lucide-react';
