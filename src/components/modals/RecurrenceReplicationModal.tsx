@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import { CheckSquare, Square, Info, Calendar, DollarSign, FileText, Tag } from 'lucide-react';
+import { CheckSquare, Square, Info, Calendar, DollarSign, FileText, Tag, User, Building, CreditCard, Hash, Clock, MapPin } from 'lucide-react';
 import { parseDateFromYYYYMMDD, formatDateToYYYYMMDD } from '../../utils/dateUtils';
 import type { ContaPagar, ContaReceber } from '../../types/database';
 
@@ -13,6 +13,7 @@ interface FieldChange {
   newValue: any;
   selected: boolean;
   description: string;
+  dayDifference?: number; // For date fields
 }
 
 interface RecurrenceReplicationModalProps {
@@ -39,83 +40,133 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
   const [fieldChanges, setFieldChanges] = useState<FieldChange[]>([]);
   const [selectAll, setSelectAll] = useState(false);
 
+  // Define replicable fields with their metadata
+  const replicableFields = [
+    { field: 'descricao', label: 'Descrição', icon: FileText, defaultSelected: true },
+    { field: 'valor_operacao', label: 'Valor da Operação', icon: DollarSign, defaultSelected: true },
+    { field: 'valor_parcela', label: 'Valor da Parcela', icon: DollarSign, defaultSelected: true },
+    { field: 'valor_juros', label: 'Juros', icon: DollarSign, defaultSelected: true },
+    { field: 'valor_multas', label: 'Multas', icon: DollarSign, defaultSelected: true },
+    { field: 'valor_atualizacao', label: 'Atualização Monetária', icon: DollarSign, defaultSelected: true },
+    { field: 'valor_descontos', label: 'Descontos', icon: DollarSign, defaultSelected: true },
+    { field: 'valor_abto', label: 'Abatimentos', icon: DollarSign, defaultSelected: true },
+    { field: 'valor_pagto', label: 'Pagamentos Realizados', icon: DollarSign, defaultSelected: true },
+    { field: 'data_vencimento', label: 'Data de Vencimento', icon: Calendar, defaultSelected: true },
+    { field: 'categoria_id', label: 'Categoria', icon: Tag, defaultSelected: true },
+    { field: 'departamento_id', label: 'Departamento', icon: Building, defaultSelected: true },
+    { field: 'forma_cobranca_id', label: 'Forma de Cobrança', icon: CreditCard, defaultSelected: true },
+    { field: 'conta_cobranca_id', label: 'Conta de Cobrança', icon: CreditCard, defaultSelected: true },
+    { field: 'tipo_documento_id', label: 'Tipo de Documento', icon: FileText, defaultSelected: true },
+    { field: 'n_docto_origem', label: 'Nº Documento Origem', icon: Hash, defaultSelected: true },
+    { field: 'sku_parcela', label: 'SKU da Parcela', icon: Hash, defaultSelected: true },
+    { field: 'observacoes', label: 'Observações', icon: FileText, defaultSelected: false },
+    { field: 'periodicidade', label: 'Periodicidade', icon: Clock, defaultSelected: false },
+    { field: 'frequencia_recorrencia', label: 'Frequência de Recorrência', icon: Clock, defaultSelected: false },
+    { field: 'termino_apos_ocorrencias', label: 'Término Após Ocorrências', icon: Clock, defaultSelected: false },
+    { field: 'intervalo_ini', label: 'Intervalo Inicial', icon: Clock, defaultSelected: false },
+    { field: 'intervalo_rec', label: 'Intervalo Recorrente', icon: Clock, defaultSelected: false },
+    { field: 'eh_vencto_fixo', label: 'Vencimento Fixo', icon: Calendar, defaultSelected: false },
+    { field: 'n_doctos_ref', label: 'Documentos de Referência', icon: FileText, defaultSelected: false },
+    { field: 'projetos', label: 'Projetos', icon: MapPin, defaultSelected: false }
+  ];
+
+  // Helper function to normalize values for comparison
+  const normalizeValue = (value: any): any => {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    if (Array.isArray(value) && value.length === 0) {
+      return null;
+    }
+    return value;
+  };
+
+  // Helper function to check if two values are different
+  const areValuesDifferent = (oldValue: any, newValue: any): boolean => {
+    const normalizedOld = normalizeValue(oldValue);
+    const normalizedNew = normalizeValue(newValue);
+    
+    // Handle arrays specially
+    if (Array.isArray(normalizedOld) && Array.isArray(normalizedNew)) {
+      return JSON.stringify(normalizedOld.sort()) !== JSON.stringify(normalizedNew.sort());
+    }
+    
+    return normalizedOld !== normalizedNew;
+  };
+
+  // Helper function to format value for display
+  const formatValueForDisplay = (value: any, field: string): string => {
+    if (value === null || value === undefined) return 'Vazio';
+    if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : 'Vazio';
+    if (field.includes('valor_') && typeof value === 'number') {
+      return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    }
+    if (field === 'data_vencimento' && typeof value === 'string') {
+      const date = parseDateFromYYYYMMDD(value);
+      return date.toLocaleDateString('pt-BR');
+    }
+    if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
+    return String(value);
+  };
+
+  // Helper function to create description for field changes
+  const createFieldDescription = (fieldMeta: any, oldValue: any, newValue: any, dayDifference?: number): string => {
+    const { field, label } = fieldMeta;
+    
+    switch (field) {
+      case 'data_vencimento':
+        if (dayDifference !== undefined) {
+          const oldDate = parseDateFromYYYYMMDD(oldValue);
+          const newDate = parseDateFromYYYYMMDD(newValue);
+          const oldDay = oldDate.getDate();
+          const newDay = newDate.getDate();
+          return `Atualizar a data de vencimento dos próximos registros para o dia "${newDay}" de cada período? (anterior: dia ${oldDay})`;
+        }
+        return `Atualizar a data de vencimento dos próximos registros?`;
+      case 'valor_parcela':
+      case 'valor_operacao':
+        const valorAnterior = Number(oldValue) || 0;
+        const valorNovo = Number(newValue) || 0;
+        const valorDifference = valorNovo - valorAnterior;
+        return `Atualizar o ${label.toLowerCase()} dos próximos registros? ${valorDifference > 0 ? 'Aumento' : 'Redução'} de R$ ${Math.abs(valorDifference).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (de R$ ${valorAnterior.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para R$ ${valorNovo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`;
+      default:
+        return `Atualizar ${label.toLowerCase()} dos próximos registros para "${formatValueForDisplay(newValue, field)}"? (anterior: "${formatValueForDisplay(oldValue, field)}")`;
+    }
+  };
+
   // Detect changes between original and updated records
   useEffect(() => {
     if (isOpen && originalRecord && updatedRecord) {
       const changes: FieldChange[] = [];
 
-      // Check data_vencimento
-      if (originalRecord.data_vencimento !== updatedRecord.data_vencimento) {
-        const oldDate = parseDateFromYYYYMMDD(originalRecord.data_vencimento);
-        const newDate = parseDateFromYYYYMMDD(updatedRecord.data_vencimento);
-        const oldDay = oldDate.getDate();
-        const newDay = newDate.getDate();
-        
-        changes.push({
-          field: 'data_vencimento',
-          label: 'Data de Vencimento',
-          icon: Calendar,
-          oldValue: originalRecord.data_vencimento,
-          newValue: updatedRecord.data_vencimento,
-          selected: true,
-          description: `Atualizar a data de vencimento dos próximos registros para o dia "${newDay}" de cada período? (anterior: dia ${oldDay})`
-        });
-      }
+      // Iterate through all replicable fields
+      for (const fieldMeta of replicableFields) {
+        const { field, label, icon, defaultSelected } = fieldMeta;
+        const oldValue = originalRecord[field as keyof typeof originalRecord];
+        const newValue = updatedRecord[field as keyof typeof updatedRecord];
 
-      // Check valor
-      if (originalRecord.valor_parcela !== updatedRecord.valor_parcela || originalRecord.valor_operacao !== updatedRecord.valor_operacao) {
-        const valorAnterior = originalRecord.valor_parcela;
-        const valorNovo = updatedRecord.valor_parcela;
-        const valorDifference = valorNovo - valorAnterior;
-        
-        changes.push({
-          field: 'valor_parcela',
-          label: 'Valor',
-          icon: DollarSign,
-          oldValue: valorAnterior,
-          newValue: valorNovo,
-          selected: true,
-          description: `Atualizar o valor dos próximos registros? ${valorDifference > 0 ? 'Aumento' : 'Redução'} de R$ ${Math.abs(valorDifference).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (de R$ ${valorAnterior.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para R$ ${valorNovo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`
-        });
-      }
+        // Check if values are different
+        if (areValuesDifferent(oldValue, newValue)) {
+          let dayDifference: number | undefined;
+          
+          // Special handling for date fields
+          if (field === 'data_vencimento') {
+            const oldDate = parseDateFromYYYYMMDD(oldValue as string);
+            const newDate = parseDateFromYYYYMMDD(newValue as string);
+            dayDifference = newDate.getDate() - oldDate.getDate();
+          }
 
-      // Check descricao
-      if (originalRecord.descricao !== updatedRecord.descricao) {
-        changes.push({
-          field: 'descricao',
-          label: 'Descrição',
-          icon: FileText,
-          oldValue: originalRecord.descricao,
-          newValue: updatedRecord.descricao,
-          selected: true,
-          description: `Atualizar a descrição dos próximos registros para "${updatedRecord.descricao}"? (anterior: "${originalRecord.descricao}")`
-        });
-      }
-
-      // Check categoria_id
-      if (originalRecord.categoria_id !== updatedRecord.categoria_id) {
-        changes.push({
-          field: 'categoria_id',
-          label: 'Categoria',
-          icon: Tag,
-          oldValue: originalRecord.categoria_id,
-          newValue: updatedRecord.categoria_id,
-          selected: true,
-          description: `Atualizar a categoria dos próximos registros? (categoria alterada)`
-        });
-      }
-
-      // Check observacoes
-      if (originalRecord.observacoes !== updatedRecord.observacoes) {
-        changes.push({
-          field: 'observacoes',
-          label: 'Observações',
-          icon: FileText,
-          oldValue: originalRecord.observacoes,
-          newValue: updatedRecord.observacoes,
-          selected: false, // Default to false for observations
-          description: `Atualizar as observações dos próximos registros?`
-        });
+          changes.push({
+            field,
+            label,
+            icon,
+            oldValue,
+            newValue,
+            selected: defaultSelected,
+            description: createFieldDescription(fieldMeta, oldValue, newValue, dayDifference),
+            dayDifference
+          });
+        }
       }
 
       setFieldChanges(changes);
@@ -148,11 +199,10 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
   };
 
   const selectedCount = fieldChanges.filter(c => c.selected).length;
-  const futureOpenRecords = futureRecords.filter(record => 
-    record.status.toLowerCase() !== 'pago' && 
-    record.status.toLowerCase() !== 'recebido' && 
-    record.status.toLowerCase() !== 'cancelado'
-  );
+  const futureOpenRecords = futureRecords.filter(record => {
+    const status = record.status.toLowerCase();
+    return status !== 'pago' && status !== 'recebido' && status !== 'cancelado';
+  });
 
   if (fieldChanges.length === 0) {
     return null; // Don't show modal if no changes detected
@@ -203,7 +253,7 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
         </div>
 
         {/* Changes List */}
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-96 overflow-y-auto">
           {fieldChanges.map((change, index) => {
             const Icon = change.icon;
             return (
@@ -238,30 +288,16 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
                       {change.description}
                     </p>
                     
-                    {/* Value comparison for specific fields */}
-                    {change.field === 'valor_parcela' && (
-                      <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
-                        <span className="line-through text-red-600">
-                          R$ {change.oldValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                        {' → '}
-                        <span className="text-green-600 font-medium">
-                          R$ {change.newValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {change.field === 'data_vencimento' && (
-                      <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
-                        <span className="line-through text-red-600">
-                          {parseDateFromYYYYMMDD(change.oldValue).toLocaleDateString('pt-BR')}
-                        </span>
-                        {' → '}
-                        <span className="text-green-600 font-medium">
-                          {parseDateFromYYYYMMDD(change.newValue).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                    )}
+                    {/* Value comparison */}
+                    <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
+                      <span className="line-through text-red-600">
+                        {formatValueForDisplay(change.oldValue, change.field)}
+                      </span>
+                      {' → '}
+                      <span className="text-green-600 font-medium">
+                        {formatValueForDisplay(change.newValue, change.field)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -287,6 +323,11 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
                   'Nenhuma alteração selecionada para aplicar.'
                 )}
               </p>
+              {futureOpenRecords.length > 0 && selectedCount > 0 && (
+                <p className="text-xs text-yellow-600 mt-2">
+                  Registros que serão afetados: {futureOpenRecords.length} de {futureRecords.length} total
+                </p>
+              )}
             </div>
           </div>
         </div>

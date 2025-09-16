@@ -1063,45 +1063,46 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
             const updatedRecord = recurrenceReplicationModal.updatedRecord;
             const futureRecords = recurrenceReplicationModal.futureRecords;
             
-            // Calculate date difference for data_vencimento changes
-            let dateDifference = 0;
-            const dateChange = selectedChanges.find(change => change.field === 'data_vencimento');
-            if (dateChange) {
-              const oldDate = parseDateFromYYYYMMDD(dateChange.oldValue);
-              const newDate = parseDateFromYYYYMMDD(dateChange.newValue);
-              dateDifference = newDate.getDate() - oldDate.getDate();
+            // Filter future records to only open ones
+            const futureOpenRecords = futureRecords.filter(record => {
+              const status = record.status.toLowerCase();
+              return status !== 'pago' && status !== 'recebido' && status !== 'cancelado';
+            });
+            
+            if (futureOpenRecords.length === 0) {
+              showError('Nenhum registro futuro em aberto para aplicar as alterações');
+              return;
             }
             
             let updatedCount = 0;
             
-            // Apply changes to each future record
-            for (const futureRecord of futureRecords) {
+            // Apply changes to each future open record
+            for (const futureRecord of futureOpenRecords) {
               const updates: any = {};
               
               for (const change of selectedChanges) {
-                switch (change.field) {
-                  case 'data_vencimento':
-                    // Apply date difference to maintain relative spacing
-                    const currentDate = parseDateFromYYYYMMDD(futureRecord.data_vencimento);
-                    currentDate.setDate(currentDate.getDate() + dateDifference);
-                    updates.data_vencimento = formatDateToYYYYMMDD(currentDate);
-                    break;
-                  case 'valor_parcela':
-                    updates.valor_parcela = change.newValue;
-                    updates.valor_operacao = change.newValue; // Keep valor_operacao in sync
-                    break;
-                  case 'descricao':
-                    updates.descricao = change.newValue;
-                    break;
-                  case 'categoria_id':
-                    updates.categoria_id = change.newValue;
-                    break;
-                  case 'observacoes':
-                    updates.observacoes = change.newValue;
-                    break;
-                  default:
-                    updates[change.field] = change.newValue;
-                    break;
+                if (change.field === 'data_vencimento' && change.dayDifference !== undefined) {
+                  // Apply date difference to maintain relative spacing
+                  const currentDate = parseDateFromYYYYMMDD(futureRecord.data_vencimento);
+                  currentDate.setDate(currentDate.getDate() + change.dayDifference);
+                  updates.data_vencimento = formatDateToYYYYMMDD(currentDate);
+                } else if (change.field === 'valor_parcela') {
+                  // Keep valor_parcela and valor_operacao in sync
+                  updates.valor_parcela = change.newValue;
+                  updates.valor_operacao = change.newValue;
+                } else {
+                  // Handle all other fields generically
+                  let value = change.newValue;
+                  
+                  // Convert empty strings to null for nullable fields
+                  if (value === '' && (
+                    change.field.includes('_id') || 
+                    ['observacoes', 'n_docto_origem', 'sku_parcela', 'periodicidade'].includes(change.field)
+                  )) {
+                    value = null;
+                  }
+                  
+                  updates[change.field] = value;
                 }
               }
               
@@ -1113,7 +1114,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
             }
             
             if (updatedCount > 0) {
-              showSuccess(`Alterações aplicadas com sucesso a ${updatedCount} registro(s) recorrente(s) futuro(s)`);
+              showSuccess(`${selectedChanges.length} alteração(ões) aplicada(s) com sucesso a ${updatedCount} registro(s) recorrente(s) futuro(s)`);
             } else {
               showError('Nenhuma alteração foi aplicada');
             }
@@ -1121,7 +1122,7 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
             await loadData();
           } catch (error) {
             console.error('Erro ao replicar alterações:', error);
-            showError(`Erro ao aplicar alterações aos registros recorrentes: ${error.message || error}`);
+            showError(`Erro ao aplicar alterações aos registros recorrentes: ${(error as any)?.message || error}`);
           } finally {
             setLoading(false);
           }
