@@ -1160,6 +1160,13 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
         updatedRecord={recurrenceReplicationModal.updatedRecord}
         futureRecords={recurrenceReplicationModal.futureRecords}
         type="pagar"
+        empresas={empresas}
+        participantes={participantes}
+        categorias={categorias}
+        departamentos={departamentos}
+        formasCobranca={formasCobranca}
+        contasFinanceiras={contasFinanceiras}
+        tiposDocumentos={tiposDocumentos}
       />
     </div>
   );

@@ -3,7 +3,7 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { CheckSquare, Square, Info, Calendar, DollarSign, FileText, Tag, User, Building, CreditCard, Hash, Clock, MapPin } from 'lucide-react';
 import { parseDateFromYYYYMMDD, formatDateToYYYYMMDD } from '../../utils/dateUtils';
-import type { ContaPagar, ContaReceber } from '../../types/database';
+import type { ContaPagar, ContaReceber, Empresa, Participante, Categoria, Departamento, FormaCobranca, ContaFinanceira, TipoDocumento } from '../../types/database';
 
 interface FieldChange {
   field: string;
@@ -25,6 +25,14 @@ interface RecurrenceReplicationModalProps {
   futureRecords: (ContaPagar | ContaReceber)[];
   type: 'pagar' | 'receber';
   loading?: boolean;
+  // Add reference data for resolving relationship names
+  empresas?: Empresa[];
+  participantes?: Participante[];
+  categorias?: Categoria[];
+  departamentos?: Departamento[];
+  formasCobranca?: FormaCobranca[];
+  contasFinanceiras?: ContaFinanceira[];
+  tiposDocumentos?: TipoDocumento[];
 }
 
 const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
@@ -35,7 +43,14 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
   updatedRecord,
   futureRecords,
   type,
-  loading = false
+  loading = false,
+  empresas = [],
+  participantes = [],
+  categorias = [],
+  departamentos = [],
+  formasCobranca = [],
+  contasFinanceiras = [],
+  tiposDocumentos = []
 }) => {
   const [fieldChanges, setFieldChanges] = useState<FieldChange[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -114,10 +129,55 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
     return normalizedOld !== normalizedNew;
   };
 
+  // Helper function to resolve relationship names
+  const resolveRelationshipName = (field: string, value: any): string => {
+    if (!value) return 'Não selecionado';
+    
+    switch (field) {
+      case 'empresa_id':
+        const empresa = empresas.find(e => e.id === value);
+        return empresa ? empresa.nome : `ID: ${value}`;
+      
+      case 'fornecedor_id':
+      case 'cliente_id':
+        const participante = participantes.find(p => p.id === value);
+        return participante ? participante.nome : `ID: ${value}`;
+      
+      case 'categoria_id':
+        const categoria = categorias.find(c => c.id === value);
+        return categoria ? categoria.nome : `ID: ${value}`;
+      
+      case 'departamento_id':
+        const departamento = departamentos.find(d => d.id === value);
+        return departamento ? departamento.nome : `ID: ${value}`;
+      
+      case 'forma_cobranca_id':
+        const forma = formasCobranca.find(f => f.id === value);
+        return forma ? forma.nome : `ID: ${value}`;
+      
+      case 'conta_cobranca_id':
+        const conta = contasFinanceiras.find(c => c.id === value);
+        return conta ? `${conta.codigo_conta} - ${conta.nome_conta}` : `ID: ${value}`;
+      
+      case 'tipo_documento_id':
+        const tipo = tiposDocumentos.find(t => t.id === value);
+        return tipo ? `${tipo.sigla_tipo} - ${tipo.nome_tipo}` : `ID: ${value}`;
+      
+      default:
+        return String(value);
+    }
+  };
+
   // Helper function to format value for display
   const formatValueForDisplay = (value: any, field: string): string => {
     if (value === null || value === undefined) return 'Vazio';
     if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : 'Vazio';
+    
+    // Handle relationship fields
+    if (field.includes('_id') && typeof value === 'string') {
+      return resolveRelationshipName(field, value);
+    }
+    
     if (field.includes('valor_') && typeof value === 'number') {
       return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
     }
@@ -157,6 +217,17 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
         const valorNovo = Number(newValue) || 0;
         const valorDifference = valorNovo - valorAnterior;
         return `Atualizar o ${label.toLowerCase()} dos próximos registros? ${valorDifference > 0 ? 'Aumento' : 'Redução'} de R$ ${Math.abs(valorDifference).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (de R$ ${valorAnterior.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para R$ ${valorNovo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`;
+      case 'empresa_id':
+      case 'fornecedor_id':
+      case 'cliente_id':
+      case 'categoria_id':
+      case 'departamento_id':
+      case 'forma_cobranca_id':
+      case 'conta_cobranca_id':
+      case 'tipo_documento_id':
+        const oldName = resolveRelationshipName(field, oldValue);
+        const newName = resolveRelationshipName(field, newValue);
+        return `Atualizar ${label.toLowerCase()} dos próximos registros para "${newName}"? (anterior: "${oldName}")`;
       default:
         return `Atualizar ${label.toLowerCase()} dos próximos registros para "${formatValueForDisplay(newValue, field)}"? (anterior: "${formatValueForDisplay(oldValue, field)}")`;
     }
