@@ -1300,6 +1300,38 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
         contasFinanceiras={contasFinanceiras}
         tiposDocumentos={tiposDocumentos}
       />
+      
+      {/* Replication Modals */}
+      {isReplicationForRecurring ? (
+        <RecurrenceReplicationModal
+          isOpen={isReplicationModalOpen}
+          onClose={() => setIsReplicationModalOpen(false)}
+          onConfirm={handleConfirmRecurrenceReplication}
+          originalRecord={originalRecordForReplication}
+          updatedRecord={updatedRecordForReplication}
+          futureRecords={futureRecordsForReplication}
+          type="receber"
+          loading={false}
+          empresas={empresas}
+          participantes={participantes}
+          categorias={categorias}
+          departamentos={departamentos}
+          formasCobranca={formasCobranca}
+          contasFinanceiras={contasFinanceiras}
+          tiposDocumentos={tiposDocumentos}
+        />
+      ) : (
+        <InstallmentReplicationModal
+          isOpen={isReplicationModalOpen}
+          onClose={() => setIsReplicationModalOpen(false)}
+          onConfirm={handleConfirmInstallmentReplication}
+          originalRecord={originalRecordForReplication!}
+          updatedRecord={updatedRecordForReplication!}
+          futureInstallments={futureRecordsForReplication}
+          type="receber"
+          loading={false}
+        />
+      )}
     </div>
   );
 };
