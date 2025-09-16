@@ -292,46 +292,453 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
   };
 
   const handleEdit = (conta: ContaReceber) => {
-    setEditingConta(conta);
-    setFormData({
-      empresa_id: conta.empresa_id,
-      cliente_id: conta.cliente_id,
-      categoria_id: conta.categoria_id || '',
-      departamento_id: conta.departamento_id || '',
-      forma_cobranca_id: conta.forma_cobranca_id || '',
-      conta_cobranca_id: conta.conta_cobranca_id || '',
-      tipo_documento_id: conta.tipo_documento_id || '',
-      descricao: conta.descricao,
-      valor_operacao: conta.valor_operacao?.toString() || '',
-      valor_juros: conta.valor_juros?.toString() || '',
-      valor_multas: conta.valor_multas?.toString() || '',
-      valor_atualizacao: conta.valor_atualizacao?.toString() || '',
-      valor_descontos: conta.valor_descontos?.toString() || '',
-      valor_abto: conta.valor_abto?.toString() || '',
-      valor_pagto: conta.valor_pagto?.toString() || '',
-      valor_parcela: conta.valor_parcela?.toString() || '',
-      status: conta.status,
-      data_vencimento: formatDateForInput(conta.data_vencimento),
-      data_recebimento: formatDateForInput(conta.data_recebimento),
-      observacoes: conta.observacoes || '',
-      dados_ele: conta.dados_ele || null,
-      id_autorizacao: conta.id_autorizacao || '',
-      eh_parcelado: conta.eh_parcelado || false,
-      total_parcelas: conta.total_parcelas?.toString() || '',
-      eh_recorrente: conta.eh_recorrente || false,
-      periodicidade: conta.periodicidade || '',
-      frequencia_recorrencia: conta.frequencia_recorrencia?.toString() || '',
-      data_inicio_recorrencia: formatDateForInput(conta.data_inicio_recorrencia),
-      termino_apos_ocorrencias: conta.termino_apos_ocorrencias?.toString() || '',
-      n_docto_origem: conta.n_docto_origem || '',
-      n_doctos_ref: conta.n_doctos_ref || [],
-      projetos: conta.projetos || [],
-      sku_parcela: conta.sku_parcela || '',
-      intervalo_ini: conta.intervalo_ini?.toString() || '',
-      intervalo_rec: conta.intervalo_rec?.toString() || '',
-      eh_vencto_fixo: conta.eh_vencto_fixo || false
-    });
-    setIsModalOpen(true);
+    // Check if this record is part of a series (installments or recurring)
+    const isPartOfSeries = conta.eh_parcelado || conta.eh_recorrente || conta.lancamento_pai_id || (conta.total_parcelas && conta.total_parcelas > 1);
+    
+    if (isPartOfSeries) {
+      // Open installment management modal for series
+      handleSeriesManagement(conta);
+    } else {
+      // Normal single record edit
+      setEditingConta(conta);
+      setFormData({
+        empresa_id: conta.empresa_id,
+        cliente_id: conta.cliente_id,
+        categoria_id: conta.categoria_id || '',
+        departamento_id: conta.departamento_id || '',
+        forma_cobranca_id: conta.forma_cobranca_id || '',
+        conta_cobranca_id: conta.conta_cobranca_id || '',
+        tipo_documento_id: conta.tipo_documento_id || '',
+        descricao: conta.descricao,
+        valor_operacao: conta.valor_operacao?.toString() || '',
+        valor_juros: conta.valor_juros?.toString() || '',
+        valor_multas: conta.valor_multas?.toString() || '',
+        valor_atualizacao: conta.valor_atualizacao?.toString() || '',
+        valor_descontos: conta.valor_descontos?.toString() || '',
+        valor_abto: conta.valor_abto?.toString() || '',
+        valor_pagto: conta.valor_pagto?.toString() || '',
+        valor_parcela: conta.valor_parcela?.toString() || '',
+        status: conta.status,
+        data_vencimento: formatDateForInput(conta.data_vencimento),
+        data_recebimento: formatDateForInput(conta.data_recebimento),
+        observacoes: conta.observacoes || '',
+        dados_ele: conta.dados_ele || null,
+        id_autorizacao: conta.id_autorizacao || '',
+        eh_parcelado: conta.eh_parcelado || false,
+        total_parcelas: conta.total_parcelas?.toString() || '',
+        eh_recorrente: conta.eh_recorrente || false,
+        periodicidade: conta.periodicidade || '',
+        frequencia_recorrencia: conta.frequencia_recorrencia?.toString() || '',
+        data_inicio_recorrencia: formatDateForInput(conta.data_inicio_recorrencia),
+        termino_apos_ocorrencias: conta.termino_apos_ocorrencias?.toString() || '',
+        n_docto_origem: conta.n_docto_origem || '',
+        n_doctos_ref: conta.n_doctos_ref || [],
+        projetos: conta.projetos || [],
+        sku_parcela: conta.sku_parcela || '',
+        intervalo_ini: conta.intervalo_ini?.toString() || '',
+        intervalo_rec: conta.intervalo_rec?.toString() || '',
+        eh_vencto_fixo: conta.eh_vencto_fixo || false
+      });
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleSeriesManagement = async (conta: ContaPagar) => {
+    try {
+      // Find all related records in the series
+      const parentId = conta.lancamento_pai_id || conta.id;
+      const { data: relatedRecords, error } = await supabase
+        .from('contas_pagar')
+        .select('*')
+        .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+        .is('deleted_at', null)
+        .order('data_vencimento', { ascending: true });
+        
+      if (error) throw error;
+      
+      const isRecurringSeries = conta.eh_recorrente || relatedRecords?.some(r => r.eh_recorrente) || false;
+      
+      setInstallmentManagementModal({
+        isOpen: true,
+        records: relatedRecords || [conta],
+        isRecurringSeries
+      });
+    } catch (error) {
+      console.error('Erro ao carregar série:', error);
+      showError('Erro ao carregar série de registros');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Store original data for comparison if editing
+    const originalData = editingConta ? { ...editingConta } : null;
+    
+    try {
+      const dataToSubmit = {
+        ...formData,
+        valor_operacao: parseFloat(formData.valor_operacao) || 0,
+        valor_juros: parseFloat(formData.valor_juros) || 0,
+        valor_multas: parseFloat(formData.valor_multas) || 0,
+        valor_atualizacao: parseFloat(formData.valor_atualizacao) || 0,
+        valor_descontos: parseFloat(formData.valor_descontos) || 0,
+        valor_abto: parseFloat(formData.valor_abto) || 0,
+        valor_pagto: parseFloat(formData.valor_pagto) || 0,
+        valor_parcela: parseFloat(formData.valor_parcela) || 0,
+        total_parcelas: parseInt(formData.total_parcelas) || 1,
+        frequencia_recorrencia: parseInt(formData.frequencia_recorrencia) || 1,
+        termino_apos_ocorrencias: parseInt(formData.termino_apos_ocorrencias) || null,
+        intervalo_ini: parseInt(formData.intervalo_ini) || 0,
+        intervalo_rec: parseInt(formData.intervalo_rec) || 30,
+        categoria_id: formData.categoria_id || null,
+        departamento_id: formData.departamento_id || null,
+        forma_cobranca_id: formData.forma_cobranca_id || null,
+        conta_cobranca_id: formData.conta_cobranca_id || null,
+        tipo_documento_id: formData.tipo_documento_id || null,
+        data_pagamento: formData.data_pagamento || null,
+        periodicidade: formData.periodicidade || null,
+        data_inicio_recorrencia: formData.data_inicio_recorrencia || null,
+        n_docto_origem: formData.n_docto_origem || null,
+        sku_parcela: formData.sku_parcela || null,
+        id_autorizacao: formData.id_autorizacao || null
+      };
+      
+      if (editingConta) {
+        const updatedRecord = await contasPagarServiceExtended.update(editingConta.id, dataToSubmit);
+        
+        // Check if we need to replicate changes to future records
+        await checkForReplication(originalData, updatedRecord);
+        
+        showSuccess('Conta atualizada com sucesso');
+      } else {
+        await contasPagarServiceExtended.create(dataToSubmit);
+        showSuccess('Conta criada com sucesso');
+      }
+      
+      if (!recurrenceReplicationModal.isOpen && !installmentReplicationModal.isOpen) {
+        setIsModalOpen(false);
+        await loadData();
+      }
+    } catch (error) {
+      console.error('Erro ao salvar conta:', error);
+      showError('Erro ao salvar conta');
+    }
+  };
+
+  const checkForReplication = async (originalData: ContaPagar | null, updatedRecord: ContaPagar) => {
+    if (!originalData) return;
+    
+    try {
+      // Check if this is a recurring record
+      if (originalData.eh_recorrente) {
+        const parentId = originalData.lancamento_pai_id || originalData.id;
+        const { data: futureRecords, error } = await supabase
+          .from('contas_pagar')
+          .select('*')
+          .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+          .gt('data_vencimento', originalData.data_vencimento)
+          .eq('eh_recorrente', true)
+          .is('deleted_at', null)
+          .order('data_vencimento', { ascending: true });
+          
+        if (error) throw error;
+        
+        if (futureRecords && futureRecords.length > 0) {
+          setRecurrenceReplicationModal({
+            isOpen: true,
+            originalRecord: originalData,
+            updatedRecord: updatedRecord,
+            futureRecords
+          });
+          return;
+        }
+      }
+      
+      // Check if this is an installment record
+      if (originalData.eh_parcelado || originalData.total_parcelas > 1 || originalData.lancamento_pai_id) {
+        const parentId = originalData.lancamento_pai_id || originalData.id;
+        const { data: futureInstallments, error } = await supabase
+          .from('contas_pagar')
+          .select('*')
+          .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+          .gt('numero_parcela', originalData.numero_parcela || 1)
+          .is('deleted_at', null)
+          .order('numero_parcela', { ascending: true });
+          
+        if (error) throw error;
+        
+        if (futureInstallments && futureInstallments.length > 0) {
+          setInstallmentReplicationModal({
+            isOpen: true,
+            originalRecord: originalData,
+            updatedRecord: updatedRecord,
+            futureInstallments
+          });
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar replicação:', error);
+    }
+  };
+
+  const handleRecurrenceReplication = async (selectedChanges: any[]) => {
+    try {
+      const { futureRecords } = recurrenceReplicationModal;
+      
+      for (const record of futureRecords) {
+        const updates: any = {};
+        
+        for (const change of selectedChanges) {
+          if (change.field === 'data_vencimento' && change.newDayOfMonth) {
+            // Special handling for date changes - apply new day of month
+            const currentDate = parseDateFromYYYYMMDD(record.data_vencimento);
+            const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), change.newDayOfMonth);
+            updates.data_vencimento = formatDateToYYYYMMDD(newDate);
+          } else {
+            updates[change.field] = change.newValue;
+          }
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await contasPagarServiceExtended.update(record.id, updates);
+        }
+      }
+      
+      setRecurrenceReplicationModal({ 
+        isOpen: false, 
+        originalRecord: null, 
+        updatedRecord: null, 
+        futureRecords: [] 
+      });
+      setIsModalOpen(false);
+      showSuccess(`Alterações aplicadas a ${futureRecords.length} registro(s) recorrente(s)`);
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao replicar alterações:', error);
+      showError('Erro ao replicar alterações');
+    }
+  };
+
+  const handleInstallmentReplication = async (selectedChanges: any[]) => {
+    try {
+      const { futureInstallments } = installmentReplicationModal;
+      
+      for (const installment of futureInstallments) {
+        const updates: any = {};
+        
+        for (const change of selectedChanges) {
+          if (change.field === 'data_vencimento') {
+            // Calculate date difference and apply to future installments
+            const originalDate = parseDateFromYYYYMMDD(change.oldValue);
+            const newDate = parseDateFromYYYYMMDD(change.newValue);
+            const dayDifference = newDate.getDate() - originalDate.getDate();
+            
+            const installmentDate = parseDateFromYYYYMMDD(installment.data_vencimento);
+            installmentDate.setDate(installmentDate.getDate() + dayDifference);
+            updates.data_vencimento = formatDateToYYYYMMDD(installmentDate);
+          } else {
+            updates[change.field] = change.newValue;
+          }
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await contasReceberServiceExtended.update(installment.id, updates);
+        }
+      }
+      
+      setInstallmentReplicationModal({ 
+        isOpen: false, 
+        originalRecord: null, 
+        updatedRecord: null, 
+        futureInstallments: [] 
+      });
+      setIsModalOpen(false);
+      showSuccess(`Alterações aplicadas a ${futureInstallments.length} parcela(s) futura(s)`);
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao replicar alterações:', error);
+      showError('Erro ao replicar alterações');
+    }
+  };
+
+  const handleSeriesManagement = async (conta: ContaReceber) => {
+    try {
+      // Find all related records in the series
+      const parentId = conta.lancamento_pai_id || conta.id;
+      const { data: relatedRecords, error } = await supabase
+        .from('contas_receber')
+        .select('*')
+        .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+        .is('deleted_at', null)
+        .order('data_vencimento', { ascending: true });
+        
+      if (error) throw error;
+      
+      const isRecurringSeries = conta.eh_recorrente || relatedRecords?.some(r => r.eh_recorrente) || false;
+      
+      setInstallmentManagementModal({
+        isOpen: true,
+        records: relatedRecords || [conta],
+        isRecurringSeries
+      });
+    } catch (error) {
+      console.error('Erro ao carregar série:', error);
+      showError('Erro ao carregar série de registros');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Store original data for comparison if editing
+    const originalData = editingConta ? { ...editingConta } : null;
+    
+    try {
+      const dataToSubmit = {
+        ...formData,
+        valor_operacao: parseFloat(formData.valor_operacao) || 0,
+        valor_juros: parseFloat(formData.valor_juros) || 0,
+        valor_multas: parseFloat(formData.valor_multas) || 0,
+        valor_atualizacao: parseFloat(formData.valor_atualizacao) || 0,
+        valor_descontos: parseFloat(formData.valor_descontos) || 0,
+        valor_abto: parseFloat(formData.valor_abto) || 0,
+        valor_pagto: parseFloat(formData.valor_pagto) || 0,
+        valor_parcela: parseFloat(formData.valor_parcela) || 0,
+        total_parcelas: parseInt(formData.total_parcelas) || 1,
+        frequencia_recorrencia: parseInt(formData.frequencia_recorrencia) || 1,
+        termino_apos_ocorrencias: parseInt(formData.termino_apos_ocorrencias) || null,
+        intervalo_ini: parseInt(formData.intervalo_ini) || 0,
+        intervalo_rec: parseInt(formData.intervalo_rec) || 30,
+        categoria_id: formData.categoria_id || null,
+        departamento_id: formData.departamento_id || null,
+        forma_cobranca_id: formData.forma_cobranca_id || null,
+        conta_cobranca_id: formData.conta_cobranca_id || null,
+        tipo_documento_id: formData.tipo_documento_id || null,
+        data_recebimento: formData.data_recebimento || null,
+        periodicidade: formData.periodicidade || null,
+        data_inicio_recorrencia: formData.data_inicio_recorrencia || null,
+        n_docto_origem: formData.n_docto_origem || null,
+        sku_parcela: formData.sku_parcela || null,
+        id_autorizacao: formData.id_autorizacao || null
+      };
+      
+      if (editingConta) {
+        const updatedRecord = await contasReceberServiceExtended.update(editingConta.id, dataToSubmit);
+        
+        // Check if we need to replicate changes to future records
+        await checkForReplication(originalData, updatedRecord);
+        
+        showSuccess('Conta atualizada com sucesso');
+      } else {
+        await contasReceberServiceExtended.create(dataToSubmit);
+        showSuccess('Conta criada com sucesso');
+      }
+      
+      if (!recurrenceReplicationModal.isOpen && !installmentReplicationModal.isOpen) {
+        setIsModalOpen(false);
+        await loadData();
+      }
+    } catch (error) {
+      console.error('Erro ao salvar conta:', error);
+      showError('Erro ao salvar conta');
+    }
+  };
+
+  const checkForReplication = async (originalData: ContaReceber | null, updatedRecord: ContaReceber) => {
+    if (!originalData) return;
+    
+    try {
+      // Check if this is a recurring record
+      if (originalData.eh_recorrente) {
+        const parentId = originalData.lancamento_pai_id || originalData.id;
+        const { data: futureRecords, error } = await supabase
+          .from('contas_receber')
+          .select('*')
+          .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+          .gt('data_vencimento', originalData.data_vencimento)
+          .eq('eh_recorrente', true)
+          .is('deleted_at', null)
+          .order('data_vencimento', { ascending: true });
+          
+        if (error) throw error;
+        
+        if (futureRecords && futureRecords.length > 0) {
+          setRecurrenceReplicationModal({
+            isOpen: true,
+            originalRecord: originalData,
+            updatedRecord: updatedRecord,
+            futureRecords
+          });
+          return;
+        }
+      }
+      
+      // Check if this is an installment record
+      if (originalData.eh_parcelado || originalData.total_parcelas > 1 || originalData.lancamento_pai_id) {
+        const parentId = originalData.lancamento_pai_id || originalData.id;
+        const { data: futureInstallments, error } = await supabase
+          .from('contas_receber')
+          .select('*')
+          .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+          .gt('numero_parcela', originalData.numero_parcela || 1)
+          .is('deleted_at', null)
+          .order('numero_parcela', { ascending: true });
+          
+        if (error) throw error;
+        
+        if (futureInstallments && futureInstallments.length > 0) {
+          setInstallmentReplicationModal({
+            isOpen: true,
+            originalRecord: originalData,
+            updatedRecord: updatedRecord,
+            futureInstallments
+          });
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar replicação:', error);
+    }
+  };
+
+  const handleRecurrenceReplication = async (selectedChanges: any[]) => {
+    try {
+      const { futureRecords } = recurrenceReplicationModal;
+      
+      for (const record of futureRecords) {
+        const updates: any = {};
+        
+        for (const change of selectedChanges) {
+          if (change.field === 'data_vencimento' && change.newDayOfMonth) {
+            // Special handling for date changes - apply new day of month
+            const currentDate = parseDateFromYYYYMMDD(record.data_vencimento);
+            const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), change.newDayOfMonth);
+            updates.data_vencimento = formatDateToYYYYMMDD(newDate);
+          } else {
+            updates[change.field] = change.newValue;
+          }
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await contasReceberServiceExtended.update(record.id, updates);
+        }
+      }
+      
+      setRecurrenceReplicationModal({ 
+        isOpen: false, 
+        originalRecord: null, 
+        updatedRecord: null, 
+        futureRecords: [] 
+      });
+      setIsModalOpen(false);
+      showSuccess(`Alterações aplicadas a ${futureRecords.length} registro(s) recorrente(s)`);
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao replicar alterações:', error);
+      showError('Erro ao replicar alterações');
+    }
   };
 
   const handleDelete = async (conta: ContaReceber) => {
@@ -397,29 +804,117 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
   };
 
   const handleInstallmentReplication = async (selectedChanges: any[]) => {
-    // Implementation for installment replication
-    console.log('Installment replication:', selectedChanges);
-    setInstallmentReplicationModal({ 
-      isOpen: false, 
-      originalRecord: null, 
-      updatedRecord: null, 
-      futureInstallments: [] 
-    });
-    showSuccess('Alterações aplicadas às parcelas futuras');
-    await loadData();
+    try {
+      const { futureInstallments } = installmentReplicationModal;
+      
+      for (const installment of futureInstallments) {
+        const updates: any = {};
+        
+        for (const change of selectedChanges) {
+          if (change.field === 'data_vencimento') {
+            // Calculate date difference and apply to future installments
+            const originalDate = parseDateFromYYYYMMDD(change.oldValue);
+            const newDate = parseDateFromYYYYMMDD(change.newValue);
+            const dayDifference = newDate.getDate() - originalDate.getDate();
+            
+            const installmentDate = parseDateFromYYYYMMDD(installment.data_vencimento);
+            installmentDate.setDate(installmentDate.getDate() + dayDifference);
+            updates.data_vencimento = formatDateToYYYYMMDD(installmentDate);
+          } else {
+            updates[change.field] = change.newValue;
+          }
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await contasReceberServiceExtended.update(installment.id, updates);
+        }
+      }
+      
+      setInstallmentReplicationModal({ 
+        isOpen: false, 
+        originalRecord: null, 
+        updatedRecord: null, 
+        futureInstallments: [] 
+      });
+      setIsModalOpen(false);
+      showSuccess(`Alterações aplicadas a ${futureInstallments.length} parcela(s) futura(s)`);
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao replicar alterações:', error);
+      showError('Erro ao replicar alterações');
+    }
   };
 
   const handleInstallmentManagement = async (installments: any[]) => {
-    // Implementation for installment management
-    console.log('Installment management:', installments);
-    setInstallmentManagementModal({ isOpen: false, records: [], isRecurringSeries: false });
-    showSuccess('Parcelas atualizadas com sucesso');
-    await loadData();
+    try {
+      for (const installment of installments) {
+        const updates = {
+          sku_parcela: installment.skuParcela,
+          data_vencimento: installment.dueDate,
+          forma_cobranca_id: installment.collectionMethodId || null,
+          conta_cobranca_id: installment.collectionAccountId || null,
+          valor_parcela: installment.amount,
+          valor_operacao: installment.amount
+        };
+        
+        await contasReceberServiceExtended.update(installment.id, updates);
+      }
+      
+      setInstallmentManagementModal({ isOpen: false, records: [], isRecurringSeries: false });
+      showSuccess(`${installments.length} registro(s) atualizado(s) com sucesso`);
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao atualizar registros:', error);
+      showError('Erro ao atualizar registros');
+    }
   };
 
   const handleInstallmentEdit = (editedInstallmentId: string, originalData: ContaReceber, updatedData: ContaReceber, isRecurring: boolean) => {
-    // Implementation for installment edit
-    console.log('Installment edit:', { editedInstallmentId, originalData, updatedData, isRecurring });
+    // This function is called when an individual installment is edited within the management modal
+    // It should trigger the appropriate replication modal based on the type of series
+    
+    if (isRecurring) {
+      // For recurring series, find future occurrences
+      const parentId = originalData.lancamento_pai_id || originalData.id;
+      supabase
+        .from('contas_receber')
+        .select('*')
+        .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+        .gt('data_vencimento', originalData.data_vencimento)
+        .eq('eh_recorrente', true)
+        .is('deleted_at', null)
+        .order('data_vencimento', { ascending: true })
+        .then(({ data: futureRecords, error }) => {
+          if (!error && futureRecords && futureRecords.length > 0) {
+            setRecurrenceReplicationModal({
+              isOpen: true,
+              originalRecord: originalData,
+              updatedRecord: updatedData,
+              futureRecords
+            });
+          }
+        });
+    } else {
+      // For installment series, find future installments
+      const parentId = originalData.lancamento_pai_id || originalData.id;
+      supabase
+        .from('contas_receber')
+        .select('*')
+        .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+        .gt('numero_parcela', originalData.numero_parcela || 1)
+        .is('deleted_at', null)
+        .order('numero_parcela', { ascending: true })
+        .then(({ data: futureInstallments, error }) => {
+          if (!error && futureInstallments && futureInstallments.length > 0) {
+            setInstallmentReplicationModal({
+              isOpen: true,
+              originalRecord: originalData,
+              updatedRecord: updatedData,
+              futureInstallments
+            });
+          }
+        });
+    }
   };
 
   const handleElectronicDataSubmit = (data: ElectronicData, authorizationId: string) => {

@@ -252,3 +252,14 @@ export interface ElectronicData {
   numeroAutorizacao?: string;
   numeroNsu?: string;
 }
+
+export interface FieldChange {
+  field: string;
+  label: string;
+  icon: React.ComponentType<any>;
+  oldValue: any;
+  newValue: any;
+  selected: boolean;
+  description: string;
+  newDayOfMonth?: number;
+}
