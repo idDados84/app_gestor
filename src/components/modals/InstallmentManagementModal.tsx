@@ -23,7 +23,7 @@ interface InstallmentManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (installments: InstallmentData[]) => void;
-  onInstallmentEdit: (editedInstallmentId: string, originalData: ContaPagar | ContaReceber, updatedData: ContaPagar | ContaReceber) => void;
+  onInstallmentEdit: (editedInstallmentId: string, originalData: ContaPagar | ContaReceber, updatedData: ContaPagar | ContaReceber, isRecurring: boolean) => void;
   records: (ContaPagar | ContaReceber)[];
   type: 'pagar' | 'receber';
   contasFinanceiras: ContaFinanceira[];
@@ -130,7 +130,8 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
           data_vencimento: currentInstallment.dueDate,
           forma_cobranca_id: currentInstallment.collectionMethodId || null,
           conta_cobranca_id: currentInstallment.collectionAccountId || null,
-          valor_parcela: currentInstallment.amount
+          valor_parcela: currentInstallment.amount,
+          valor_operacao: currentInstallment.amount // Atualizar valor_operacao junto com valor_parcela
         };
         
         // Check if there are actual changes
@@ -139,12 +140,13 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
           originalRecord.data_vencimento !== updatedRecord.data_vencimento ||
           originalRecord.forma_cobranca_id !== updatedRecord.forma_cobranca_id ||
           originalRecord.conta_cobranca_id !== updatedRecord.conta_cobranca_id ||
-          originalRecord.valor_parcela !== updatedRecord.valor_parcela
+          originalRecord.valor_parcela !== updatedRecord.valor_parcela ||
+          originalRecord.valor_operacao !== updatedRecord.valor_operacao
         );
         
         if (hasChanges) {
           // Trigger the replication modal
-          onInstallmentEdit(currentInstallment.id, originalRecord, updatedRecord);
+          onInstallmentEdit(currentInstallment.id, originalRecord, updatedRecord, isRecurringSeries || false);
         }
       }
     }

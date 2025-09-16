@@ -9,6 +9,8 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import FinancialSummary from '../ui/FinancialSummary';
 import ElectronicDataModal from '../modals/ElectronicDataModal';
 import MassCancellationModal from '../modals/MassCancellationModal';
+import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
+import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
 import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
 import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
@@ -69,6 +71,13 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     parentId?: string;
   }>({ isOpen: false, records: [] });
   const [selectedRecordForModal, setSelectedRecordForModal] = useState<ContaPagar | null>(null);
+  
+  // Replication modal states
+  const [isReplicationModalOpen, setIsReplicationModalOpen] = useState(false);
+  const [originalRecordForReplication, setOriginalRecordForReplication] = useState<ContaPagar | null>(null);
+  const [updatedRecordForReplication, setUpdatedRecordForReplication] = useState<ContaPagar | null>(null);
+  const [futureRecordsForReplication, setFutureRecordsForReplication] = useState<ContaPagar[]>([]);
+  const [isReplicationForRecurring, setIsReplicationForRecurring] = useState(false);
   const [electronicDataModal, setElectronicDataModal] = useState<{
     isOpen: boolean;
     data: ElectronicData | null;
