@@ -154,7 +154,7 @@ export async function generateSkuForNewRecord(
     // Format components
     const docTypeFormatted = docTypeCode.padStart(2, '0');
     const originDocFormatted = (nDoctoOrigem || participantId.substring(0, 6)).padStart(6, '0');
-    const totalParcelasFormatted = totalInstallmentsInSeries.toString().padStart(1, '0');
+    const totalParcelasFormatted = totalInstallmentsInSeries.toString().padStart(2, '0');
     const numeroParcelaFormatted = currentInstallmentNum.toString().padStart(2, '0');
     
     // Get last 2 digits from participant document
@@ -167,7 +167,7 @@ export async function generateSkuForNewRecord(
     console.error('Error generating SKU:', error);
     // Fallback SKU generation
     const fallbackOrigin = (nDoctoOrigem || participantId.substring(0, 6)).padStart(6, '0');
-    const totalFormatted = totalInstallmentsInSeries.toString().padStart(1, '0');
+    const totalFormatted = totalInstallmentsInSeries.toString().padStart(2, '0');
     const currentFormatted = currentInstallmentNum.toString().padStart(2, '0');
     return `DOC-${fallbackOrigin}-${totalFormatted}-${currentFormatted}-00`;
   }
