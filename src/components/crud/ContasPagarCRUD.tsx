@@ -10,6 +10,7 @@ import FinancialSummary from '../ui/FinancialSummary';
 import ElectronicDataModal from '../modals/ElectronicDataModal';
 import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
+import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
 import MassCancellationModal from '../modals/MassCancellationModal';
 import { useToast } from '../../hooks/useToast';
 import { Settings, Edit } from 'lucide-react';
