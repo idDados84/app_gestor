@@ -7,12 +7,18 @@ import Select from '../ui/Select';
 import TagInput from '../ui/TagInput';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import FinancialSummary from '../ui/FinancialSummary';
+import MassCancellationModal from '../modals/MassCancellationModal';
+import ElectronicDataModal from '../modals/ElectronicDataModal';
+import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
+import InstallmentManagementModal from '../modals/InstallmentManagementModal';
+import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
 import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
 import ElectronicDataModal from '../modals/ElectronicDataModal';
 import MassCancellationModal from '../modals/MassCancellationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
 import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
 import { useToast } from '../../hooks/useToast';
+import { Settings, Edit } from 'lucide-react';
 import { Settings } from 'lucide-react';
 import { 
   contasReceberServiceExtended, 
