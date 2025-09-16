@@ -28,6 +28,7 @@ interface InstallmentManagementModalProps {
   type: 'pagar' | 'receber';
   contasFinanceiras: ContaFinanceira[];
   formasCobranca: FormaCobranca[];
+  isRecurringSeries?: boolean;
   loading?: boolean;
 }
 
@@ -40,6 +41,7 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
   type,
   contasFinanceiras,
   formasCobranca,
+  isRecurringSeries = false,
   loading = false
 }) => {
   const [installments, setInstallments] = useState<InstallmentData[]>([]);
@@ -169,6 +171,14 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
   };
 
   const handleAmountChange = (index: number, newAmount: number) => {
+    // Para séries recorrentes, apenas atualiza o valor da parcela atual
+    if (isRecurringSeries) {
+      const updatedInstallments = [...installments];
+      updatedInstallments[index].amount = Math.round(newAmount * 100) / 100;
+      setInstallments(updatedInstallments);
+      return;
+    }
+    
     // Atualizar a parcela atual
     const updatedInstallments = [...installments];
     updatedInstallments[index].amount = Math.round(newAmount * 100) / 100; // Garantir 2 casas decimais
@@ -238,11 +248,14 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
     const newErrors: Record<string, string> = {};
     let isValid = true;
     
-    // Check total amount
-    const totalDifference = Math.abs(currentTotal - originalTotal);
-    if (totalDifference > 0.01) {
-      newErrors.total = `Total das parcelas (R$ ${currentTotal.toFixed(2)}) deve ser igual ao valor original (R$ ${originalTotal.toFixed(2)})`;
-      isValid = false;
+    // Para parcelamentos, validar se o total das parcelas é igual ao valor original
+    // Para séries recorrentes, essa validação não se aplica
+    if (!isRecurringSeries) {
+      const totalDifference = Math.abs(currentTotal - originalTotal);
+      if (totalDifference > 0.01) {
+        newErrors.total = `Total das parcelas (R$ ${currentTotal.toFixed(2)}) deve ser igual ao valor original (R$ ${originalTotal.toFixed(2)})`;
+        isValid = false;
+      }
     }
     
     // Check individual installments
@@ -287,12 +300,22 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
 
   const totalDifference = currentTotal - originalTotal;
   const hasErrors = Object.keys(errors).length > 0;
+  
+  // Para séries recorrentes, o título e comportamento são diferentes
+  const modalTitle = isRecurringSeries 
+    ? `Gerenciamento de Assinaturas - ${type === 'pagar' ? 'Contas a Pagar' : 'Contas a Receber'}`
+    : `Gerenciamento de Parcelas - ${type === 'pagar' ? 'Contas a Pagar' : 'Contas a Receber'}`;
+    
+  const summaryTitle = isRecurringSeries ? 'Resumo das Assinaturas' : 'Resumo das Parcelas';
+  const summaryDescription = isRecurringSeries 
+    ? `${installments.length} ocorrência(s) • Série Recorrente`
+    : `${installments.length} parcela(s) • Valor Original: R$ ${originalTotal.toFixed(2)}`;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Gerenciamento de Parcelas - ${type === 'pagar' ? 'Contas a Pagar' : 'Contas a Receber'}`}
+      title={modalTitle}
       size="xl"
     >
       <div className="space-y-4">
@@ -301,40 +324,44 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium text-gray-900">
-                Resumo das Parcelas
+                {summaryTitle}
               </h3>
               <p className="text-sm text-gray-600">
-                {installments.length} parcela(s) • Valor Original: R$ {originalTotal.toFixed(2)}
+                {summaryDescription}
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-600">Total Atual:</p>
-              <p className={`text-lg font-semibold ${
-                Math.abs(totalDifference) > 0.01 ? 'text-red-600' : 'text-green-600'
-              }`}>
-                R$ {currentTotal.toFixed(2)}
-              </p>
-              {Math.abs(totalDifference) > 0.01 && (
-                <p className="text-xs text-red-600">
-                  Diferença: R$ {totalDifference.toFixed(2)}
+            {!isRecurringSeries && (
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Total Atual:</p>
+                <p className={`text-lg font-semibold ${
+                  Math.abs(totalDifference) > 0.01 ? 'text-red-600' : 'text-green-600'
+                }`}>
+                  R$ {currentTotal.toFixed(2)}
                 </p>
-              )}
-            </div>
+                {Math.abs(totalDifference) > 0.01 && (
+                  <p className="text-xs text-red-600">
+                    Diferença: R$ {totalDifference.toFixed(2)}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           
-          {/* Auto Distribute Button */}
-          <div className="mt-3 flex justify-end">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={handleAutoDistribute}
-              icon={Calculator}
-              disabled={loading}
-            >
-              Distribuir Automaticamente
-            </Button>
-          </div>
+          {/* Auto Distribute Button - apenas para parcelamentos */}
+          {!isRecurringSeries && (
+            <div className="mt-3 flex justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleAutoDistribute}
+                icon={Calculator}
+                disabled={loading}
+              >
+                Distribuir Automaticamente
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Error Summary */}
@@ -362,7 +389,7 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
             <thead className="bg-gray-50 sticky top-0">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Parcela
+                  {isRecurringSeries ? 'Ocorrência' : 'Parcela'}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   SKU
@@ -388,7 +415,7 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
               {installments.map((installment, index) => (
                 <tr key={installment.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                    {installment.installmentNumber}
+                    {isRecurringSeries ? `${installment.installmentNumber}ª` : installment.installmentNumber}
                   </td>
                   
                   <td className="px-4 py-3">
