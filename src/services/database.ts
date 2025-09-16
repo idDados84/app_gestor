@@ -685,24 +685,12 @@ export const contasReceberServiceExtended = {
       let parentId: string | undefined = item.lancamento_pai_id;
 
       while (occurrences < maxOccurrences) {
-        // Generate SKU for this occurrence
-        const skuParcela = await generateSkuForNewRecord(
-          item.tipo_documento_id || null,
-          item.n_docto_origem || null,
-          item.cliente_id,
-          occurrences + 1,
-          1 // For recurring items, each occurrence is treated as a single item
-        );
-        
         const newItem = {
           ...item,
           data_vencimento: currentDate.toISOString().split('T')[0], // Format as 'YYYY-MM-DD'
           eh_recorrente: true, // Keep recurrence flag for validation purposes
           eh_parcelado: false, // Recurring items are not parcelled
           lancamento_pai_id: parentId,
-          sku_parcela: skuParcela,
-          numero_parcela: occurrences + 1,
-          total_parcelas: 1
         };
 
         const { data: createdItem, error } = await supabase.from('contas_receber').insert([newItem]).select().single();

@@ -52,6 +52,44 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
 
   // Initialize installments when modal opens or records change
   useEffect(() => {
+    const initializeInstallments = async () => {
+      if (isOpen && records.length > 0) {
+        const sortedRecords = [...records].sort((a, b) => {
+          const aNum = a.numero_parcela || 1;
+          const bNum = b.numero_parcela || 1;
+          return aNum - bNum;
+        });
+        
+        // Store original records for comparison
+        setOriginalRecords([...sortedRecords]);
+
+        const installmentData: InstallmentData[] = await Promise.all(
+          sortedRecords.map(async (record, index) => ({
+            id: record.id,
+            installmentNumber: record.numero_parcela || (index + 1),
+            skuParcela: record.sku_parcela || await generateSKU(record, index + 1, sortedRecords.length),
+            dueDate: record.data_vencimento,
+            collectionMethodId: record.forma_cobranca_id || '',
+            collectionAccountId: record.conta_cobranca_id || '',
+            amount: record.valor_parcela || 0,
+            isEditing: false
+          }))
+        );
+
+        setInstallments(installmentData);
+        
+        const total = installmentData.reduce((sum, inst) => sum + inst.amount, 0);
+        setOriginalTotal(total);
+        setCurrentTotal(total);
+      }
+    };
+    
+    initializeInstallments();
+  }, [isOpen, records]);
+
+  // Remove the old useEffect since we've replaced it with the async version above
+  /*
+  useEffect(() => {
     if (isOpen && records.length > 0) {
       const sortedRecords = [...records].sort((a, b) => {
         const aNum = a.numero_parcela || 1;
@@ -80,6 +118,7 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
       setCurrentTotal(total);
     }
   }, [isOpen, records]);
+  */
 
   // Update current total when installments change
   useEffect(() => {
