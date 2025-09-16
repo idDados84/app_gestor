@@ -5,6 +5,7 @@ import Input from '../ui/Input';
 import Button from '../ui/Button';
 import Select from '../ui/Select';
 import TagInput from '../ui/TagInput';
+import TagInput from '../ui/TagInput';
 import ElectronicDataModal from '../modals/ElectronicDataModal';
 import MassCancellationModal from '../modals/MassCancellationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
@@ -1234,6 +1235,24 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
               onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               rows={3}
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <TagInput
+              label="Nº Documentos Referência"
+              value={formData.n_doctos_ref}
+              onChange={(tags) => setFormData({ ...formData, n_doctos_ref: tags })}
+              placeholder="Digite um documento e pressione Enter"
+              addButtonText="Adicionar"
+            />
+            
+            <TagInput
+              label="Projetos"
+              value={formData.projetos}
+              onChange={(tags) => setFormData({ ...formData, projetos: tags })}
+              placeholder="Digite um projeto e pressione Enter"
+              addButtonText="Adicionar"
             />
           </div>
           
