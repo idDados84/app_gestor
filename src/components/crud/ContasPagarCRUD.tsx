@@ -128,10 +128,11 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     n_docto_origem: '',
     sku_parcela: '',
     intervalo_ini: 0,
-    intervalo_rec: 30,
-  });
+    valor_financeiro: '',
     n_doctos_ref: [],
-    projetos: [],
+    projetos: []
+  });
+
     {
       key: 'descricao' as keyof ContaPagar,
       header: 'Descrição',
