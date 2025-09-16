@@ -4,6 +4,7 @@ import Modal from '../ui/Modal';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import Select from '../ui/Select';
+import TagInput from '../ui/TagInput';
 import ElectronicDataModal from '../modals/ElectronicDataModal';
 import MassCancellationModal from '../modals/MassCancellationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
@@ -129,8 +130,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     intervalo_ini: 0,
     intervalo_rec: 30,
   });
-
-  const columns = [
+    n_doctos_ref: [],
+    projetos: [],
     {
       key: 'descricao' as keyof ContaPagar,
       header: 'Descrição',
@@ -360,8 +361,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       intervalo_ini: 0,
       intervalo_rec: 30,
     });
-    setCurrentElectronicData(null);
-    setIsModalOpen(true);
+      n_doctos_ref: [],
+      projetos: [],
   };
 
   const handleEdit = (conta: ContaPagar) => {
@@ -402,8 +403,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       intervalo_ini: conta.intervalo_ini || 0,
       intervalo_rec: conta.intervalo_rec || 30,
     });
-    setCurrentElectronicData(conta.dados_ele || null);
-    setIsModalOpen(true);
+      n_doctos_ref: conta.n_doctos_ref || [],
+      projetos: conta.projetos || [],
   };
 
   const handleDelete = async (conta: ContaPagar) => {
