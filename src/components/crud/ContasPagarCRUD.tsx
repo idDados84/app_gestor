@@ -488,8 +488,10 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
             c.id === parentId || c.lancamento_pai_id === parentId
           );
           const futureInstallments = allInstallments.filter(c => 
-            c.id !== originalRecord.id && 
-            new Date(c.data_vencimento) > new Date(originalRecord.data_vencimento)
+            c.id !== originalRecord.id && (
+              new Date(c.data_vencimento) > new Date(originalRecord.data_vencimento) ||
+              (new Date(c.data_vencimento).getTime() === new Date(originalRecord.data_vencimento).getTime() && c.numero_parcela > originalRecord.numero_parcela)
+            )
           );
           
           if (futureInstallments.length > 0) {
@@ -510,7 +512,7 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
           );
           const futureRecurrences = allRecurrences.filter(c => 
             c.id !== originalRecord.id && 
-            new Date(c.data_vencimento) > new Date(originalRecord.data_vencimento)
+            new Date(c.data_vencimento) >= new Date(originalRecord.data_vencimento)
           );
           
           if (futureRecurrences.length > 0) {
