@@ -12,6 +12,7 @@ import MassCancellationModal from '../modals/MassCancellationModal';
 import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
 import InstallmentReplicationModal from '../modals/InstallmentReplicationModal';
 import InstallmentManagementModal from '../modals/InstallmentManagementModal';
+import RecurrenceReplicationModal from '../modals/RecurrenceReplicationModal';
 import { useToast } from '../../hooks/useToast';
 import { Settings, Edit } from 'lucide-react';
 import { 
