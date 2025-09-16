@@ -78,7 +78,40 @@ const ElectronicDataModal: React.FC<ElectronicDataModalProps> = ({
     { value: 'TED', label: 'TED' },
     { value: 'DOC', label: 'DOC' },
     { value: 'BOLETO', label: 'Boleto' },
-    { value: 'OUTROS', label: 'Outros' },
+    { value: 'OUTROS', label: 'Outros' }
+  ];
+
+  const credenciadoraOptions = [
+    { value: 'CIELO', label: 'Cielo' },
+    { value: 'REDE', label: 'Rede' },
+    { value: 'STONE', label: 'Stone' },
+    { value: 'GETNET', label: 'Getnet' },
+    { value: 'PAGSEGURO', label: 'PagSeguro' },
+    { value: 'MERCADOPAGO', label: 'Mercado Pago' },
+    { value: 'PAYPAL', label: 'PayPal' },
+    { value: 'ADYEN', label: 'Adyen' },
+    { value: 'STRIPE', label: 'Stripe' },
+    { value: 'BANCO_BRASIL', label: 'Banco do Brasil' },
+    { value: 'ITAU', label: 'Itaú' },
+    { value: 'BRADESCO', label: 'Bradesco' },
+    { value: 'SANTANDER', label: 'Santander' },
+    { value: 'CAIXA', label: 'Caixa Econômica Federal' },
+    { value: 'OUTROS', label: 'Outros' }
+  ];
+
+  const bandeiraOptions = [
+    { value: 'VISA', label: 'Visa' },
+    { value: 'MASTERCARD', label: 'Mastercard' },
+    { value: 'ELO', label: 'Elo' },
+    { value: 'AMERICAN_EXPRESS', label: 'American Express' },
+    { value: 'HIPERCARD', label: 'Hipercard' },
+    { value: 'DINERS', label: 'Diners Club' },
+    { value: 'DISCOVER', label: 'Discover' },
+    { value: 'JCB', label: 'JCB' },
+    { value: 'AURA', label: 'Aura' },
+    { value: 'SOROCRED', label: 'Sorocred' },
+    { value: 'PIX', label: 'PIX' },
+    { value: 'OUTROS', label: 'Outros' }
   ];
 
   return (
@@ -93,17 +126,21 @@ const ElectronicDataModal: React.FC<ElectronicDataModalProps> = ({
           required
           error={errors.tipoIntegracao}
         />
-        <Input
+        <Select
           label="Credenciadora"
           value={credenciadora}
           onChange={(e) => setCredenciadora(e.target.value)}
+          options={credenciadoraOptions}
+          placeholder="Selecione a credenciadora"
           required
           error={errors.credenciadora}
         />
-        <Input
+        <Select
           label="Bandeira"
           value={bandeira}
           onChange={(e) => setBandeira(e.target.value)}
+          options={bandeiraOptions}
+          placeholder="Selecione a bandeira"
           required
           error={errors.bandeira}
         />

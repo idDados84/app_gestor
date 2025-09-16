@@ -81,13 +81,14 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
 
   const generateSKU = (record: ContaPagar | ContaReceber, installmentNum: number, totalInstallments: number): string => {
     // Get document type code - fallback to 'DOC' if not available
-    const docTypeCode = record.tipos_documentos?.codigo_tipo || 'DOC';
+    const docTypeCode = (record.tipos_documentos?.codigo_tipo || 'DOC').padStart(2, '0');
     
     // Get origin document number - fallback to record ID substring
-    const originDoc = record.n_docto_origem || record.id.substring(0, 8);
+    const originDoc = (record.n_docto_origem || record.id.substring(0, 6)).padStart(6, '0');
     
     // Format installment info: total parcelas + numero da parcela
-    const installmentInfo = `${totalInstallments}${installmentNum.toString().padStart(2, '0')}`;
+    const totalParcelasFormatted = totalInstallments.toString().padStart(1, '0');
+    const numeroParcelaFormatted = installmentNum.toString().padStart(2, '0');
     
     // Get participant document last 2 digits - fallback to '00'
     const participantDoc = record.participantes?.documento || '';
@@ -95,8 +96,13 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
     const numericDoc = participantDoc.replace(/\D/g, '');
     const lastTwoDigits = numericDoc.length >= 2 ? numericDoc.slice(-2) : '00';
     
-    // New format: código do tipo de documento + n do documento origem + qtde de parcelas + n da parcela + 2 últimos dígitos do participante
-    return `${docTypeCode}${originDoc}${installmentInfo}${lastTwoDigits}`;
+    // Format: XX-YYYYYY-Z-AA-BB
+    // XX = código do tipo de documento (2 dígitos)
+    // YYYYYY = número do documento origem (6 dígitos)
+    // Z = quantidade de parcelas (1 dígito)
+    // AA = número da parcela (2 dígitos)
+    // BB = 2 últimos dígitos do documento do participante
+    return `${docTypeCode}-${originDoc}-${totalParcelasFormatted}-${numeroParcelaFormatted}-${lastTwoDigits}`;
   };
 
   const handleEditToggle = (index: number) => {
