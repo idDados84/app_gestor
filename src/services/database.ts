@@ -681,6 +681,9 @@ export const contasReceberServiceExtended = {
       let currentDate = new Date(item.data_inicio_recorrencia);
       let occurrences = 0;
       const maxOccurrences = item.termino_apos_ocorrencias || Infinity;
+      
+      // Define total occurrences for SKU generation
+      const totalOccurrencesForSku = item.termino_apos_ocorrencias || 99; // Use 99 for infinite recurrence
 
       let parentId: string | undefined = item.lancamento_pai_id;
 
@@ -690,8 +693,8 @@ export const contasReceberServiceExtended = {
           item.tipo_documento_id,
           item.n_docto_origem,
           item.cliente_id,
-          1, // currentInstallmentNum - each occurrence is #1
-          1  // totalInstallmentsInSeries - each occurrence is standalone
+          occurrences + 1, // currentInstallmentNum - current occurrence number
+          totalOccurrencesForSku  // totalInstallmentsInSeries - total occurrences in series
         );
 
         const newItem = {
@@ -701,8 +704,8 @@ export const contasReceberServiceExtended = {
           eh_parcelado: false, // Recurring items are not parcelled
           lancamento_pai_id: parentId,
           sku_parcela: generatedSku,
-          numero_parcela: 1,
-          total_parcelas: 1
+          numero_parcela: occurrences + 1,
+          total_parcelas: totalOccurrencesForSku
         };
 
         const { data: createdItem, error } = await supabase.from('contas_receber').insert([newItem]).select().single();
