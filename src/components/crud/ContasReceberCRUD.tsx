@@ -948,6 +948,67 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
           </div>
 
           {/* Recurrence Section */}
+          <div className="border-t border-gray-200 pt-6">
+            <h4 className="text-lg font-medium text-gray-900 mb-4">Configurações de Recorrência</h4>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                label="É Recorrente?"
+                value={formData.eh_recorrente.toString()}
+                onChange={(e) => setFormData({ ...formData, eh_recorrente: e.target.value === 'true' })}
+                options={[
+                  { value: 'false', label: 'Não' },
+                  { value: 'true', label: 'Sim' }
+                ]}
+              />
+              
+              {formData.eh_recorrente && (
+                <>
+                  <Select
+                    label="Periodicidade"
+                    value={formData.periodicidade}
+                    onChange={(e) => setFormData({ ...formData, periodicidade: e.target.value })}
+                    options={[
+                      { value: 'diario', label: 'Diário' },
+                      { value: 'semanal', label: 'Semanal' },
+                      { value: 'mensal', label: 'Mensal' },
+                      { value: 'anual', label: 'Anual' }
+                    ]}
+                    placeholder="Selecione a periodicidade"
+                    required
+                  />
+                  
+                  <Input
+                    label="Frequência de Recorrência"
+                    type="number"
+                    value={formData.frequencia_recorrencia.toString()}
+                    onChange={(e) => setFormData({ ...formData, frequencia_recorrencia: parseInt(e.target.value) || 1 })}
+                    min="1"
+                    required
+                  />
+                  
+                  <Input
+                    label="Data de Início da Recorrência"
+                    type="date"
+                    value={formData.data_inicio_recorrencia}
+                    onChange={(e) => setFormData({ ...formData, data_inicio_recorrencia: e.target.value })}
+                    required
+                  />
+                  
+                  <Input
+                    label="Terminar Após (Ocorrências)"
+                    type="number"
+                    value={formData.termino_apos_ocorrencias}
+                    onChange={(e) => setFormData({ ...formData, termino_apos_ocorrencias: e.target.value })}
+                    min="1"
+                    placeholder="Deixe vazio para recorrência infinita"
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Recurrence Section */}
           <div className="mt-6 p-4 bg-purple-50 rounded-lg">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Recorrência</h3>
             <div className="grid grid-cols-2 gap-4">
