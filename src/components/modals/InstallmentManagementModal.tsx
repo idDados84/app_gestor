@@ -44,6 +44,8 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
   isRecurringSeries = false,
   loading = false
 }) => {
+  console.log('InstallmentManagementModal - isRecurringSeries prop received:', isRecurringSeries);
+  
   const [installments, setInstallments] = useState<InstallmentData[]>([]);
   const [originalRecords, setOriginalRecords] = useState<(ContaPagar | ContaReceber)[]>([]);
   const [originalTotal, setOriginalTotal] = useState(0);

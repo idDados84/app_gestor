@@ -364,6 +364,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     try {
       // Find all related installments
       const parentId = conta.lancamento_pai_id || conta.id;
+      console.log('handleManageInstallments - Record:', conta);
+      console.log('handleManageInstallments - eh_recorrente:', conta.eh_recorrente);
       const allInstallments = contas.filter(c => 
         c.id === parentId || c.lancamento_pai_id === parentId
       );
