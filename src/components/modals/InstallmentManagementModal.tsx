@@ -41,7 +41,6 @@ const InstallmentManagementModal: React.FC<InstallmentManagementModalProps> = ({
   type,
   contasFinanceiras,
   formasCobranca,
-  isRecurringSeries = false,
   loading = false
 }) => {
   console.log('InstallmentManagementModal - isRecurringSeries prop received:', isRecurringSeries);
