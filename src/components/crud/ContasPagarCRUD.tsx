@@ -504,6 +504,73 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     }));
   };
 
+  const handleConfirmInstallmentReplication = async (selectedChanges: any[]) => {
+    if (!replicationModal.originalRecord || !replicationModal.updatedRecord) return;
+
+    try {
+      const { futureRecords, isRecurring } = replicationModal;
+      const originalRecord = replicationModal.originalRecord;
+      const updatedRecord = replicationModal.updatedRecord;
+
+      for (const record of futureRecords) {
+        const updates: Partial<ContaPagar> = {};
+        let shouldUpdate = false;
+
+        for (const change of selectedChanges) {
+          if (change.field === 'data_vencimento' && isRecurring) {
+            // Special handling for recurring dates: apply new day of month
+            const newDayOfMonth = change.newDayOfMonth;
+            if (newDayOfMonth !== undefined) {
+              const currentRecordDate = parseDateFromYYYYMMDD(record.data_vencimento);
+              let newDate = new Date(currentRecordDate.getFullYear(), currentRecordDate.getMonth(), newDayOfMonth);
+              // Adjust for months with fewer days
+              if (newDate.getMonth() !== currentRecordDate.getMonth()) {
+                newDate = new Date(currentRecordDate.getFullYear(), currentRecordDate.getMonth() + 1, 0); // Last day of the month
+              }
+              updates.data_vencimento = formatDateToYYYYMMDD(newDate);
+              shouldUpdate = true;
+            }
+          } else if (change.field === 'data_vencimento' && !isRecurring) {
+            // Special handling for installment dates: adjust by day difference
+            const originalDueDate = parseDateFromYYYYMMDD(originalRecord.data_vencimento);
+            const updatedDueDate = parseDateFromYYYYMMDD(updatedRecord.data_vencimento);
+            const dayDifference = updatedDueDate.getDate() - originalDueDate.getDate();
+
+            const currentRecordDate = parseDateFromYYYYMMDD(record.data_vencimento);
+            let newDate = new Date(currentRecordDate);
+            newDate.setDate(currentRecordDate.getDate() + dayDifference);
+            updates.data_vencimento = formatDateToYYYYMMDD(newDate);
+            shouldUpdate = true;
+          } else if (change.field === 'valor_parcela' && !isRecurring) {
+            // For installments, apply the new value directly
+            updates.valor_parcela = updatedRecord.valor_parcela;
+            updates.valor_operacao = updatedRecord.valor_operacao; // Also update valor_operacao
+            shouldUpdate = true;
+          } else if (change.field === 'valor_operacao' && isRecurring) {
+            // For recurring, apply the new value directly
+            updates.valor_operacao = updatedRecord.valor_operacao;
+            shouldUpdate = true;
+          } else {
+            // For other fields, apply the new value from the updated record
+            updates[change.field as keyof ContaPagar] = updatedRecord[change.field as keyof ContaPagar] as any;
+            shouldUpdate = true;
+          }
+        }
+
+        if (shouldUpdate) {
+          await contasPagarServiceExtended.update(record.id, updates);
+        }
+      }
+      showSuccess('Alterações replicadas com sucesso para registros futuros!');
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao replicar alterações:', error);
+      showError('Erro ao replicar alterações.');
+    } finally {
+      setReplicationModal({ isOpen: false, originalRecord: null, updatedRecord: null, futureRecords: [], isRecurring: false });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -1086,7 +1153,7 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       <InstallmentReplicationModal
         isOpen={installmentReplicationModal.isOpen}
         onClose={() => setInstallmentReplicationModal({ 
-          isOpen: false, 
+        onConfirm={handleConfirmInstallmentReplication}
           originalRecord: null, 
           updatedRecord: null, 
           futureInstallments: [] 
