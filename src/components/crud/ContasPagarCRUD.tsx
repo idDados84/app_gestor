@@ -1072,6 +1072,8 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
               dateDifference = newDate.getDate() - oldDate.getDate();
             }
             
+            let updatedCount = 0;
+            
             // Apply changes to each future record
             for (const futureRecord of futureRecords) {
               const updates: any = {};
@@ -1103,15 +1105,23 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
                 }
               }
               
-              // Update the record
-              await contasPagarServiceExtended.update(futureRecord.id, updates);
+              // Only update if there are actual changes
+              if (Object.keys(updates).length > 0) {
+                await contasPagarServiceExtended.update(futureRecord.id, updates);
+                updatedCount++;
+              }
             }
             
-            showSuccess(`Alterações aplicadas a ${futureRecords.length} registro(s) recorrente(s) futuro(s)`);
+            if (updatedCount > 0) {
+              showSuccess(`Alterações aplicadas com sucesso a ${updatedCount} registro(s) recorrente(s) futuro(s)`);
+            } else {
+              showError('Nenhuma alteração foi aplicada');
+            }
+            
             await loadData();
           } catch (error) {
             console.error('Erro ao replicar alterações:', error);
-            showError('Erro ao aplicar alterações aos registros recorrentes');
+            showError(`Erro ao aplicar alterações aos registros recorrentes: ${error.message || error}`);
           } finally {
             setLoading(false);
           }
