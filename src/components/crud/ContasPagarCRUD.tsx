@@ -218,6 +218,11 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       render: (value: any) => value?.nome || '-'
     },
     {
+      key: 'tipos_documentos' as keyof ContaPagar,
+      header: 'Tipo Documento',
+      render: (value: any) => value?.sigla_tipo || '-'
+    },
+    {
       key: 'valor' as keyof ContaPagar,
       header: 'Valor',
       render: (value: number, item: ContaPagar) => `R$ ${(item.valor_parcela || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
@@ -366,6 +371,7 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       n_doctos_ref: [],
       projetos: []
     });
+    setIsModalOpen(true);
   };
 
   const handleEdit = (conta: ContaPagar) => {
@@ -385,7 +391,7 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       valor_atualizacao: (conta.valor_atualizacao ?? 0).toString(),
       valor_descontos: (conta.valor_descontos ?? 0).toString(),
       valor_abto: (conta.valor_abto ?? 0).toString(),
-      valor_abto: conta.valor_abto?.toString() || '',
+      valor_pagto: (conta.valor_pagto ?? 0).toString(),
       valor_financeiro: (conta.valor_financeiro ?? 0).toString(),
       valor_parcela: (conta.valor_parcela ?? 0).toString(),
       status: conta.status,
@@ -393,21 +399,21 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       data_pagamento: conta.data_pagamento || '',
       observacoes: conta.observacoes || '',
       numero_parcela: conta.numero_parcela || 1,
-      total_parcelas: conta.total_parcelas?.toString() || '',
+      total_parcelas: conta.total_parcelas || 1,
       eh_parcelado: conta.eh_parcelado || false,
       lancamento_pai_id: conta.lancamento_pai_id || '',
       eh_recorrente: conta.eh_recorrente || false,
       periodicidade: conta.periodicidade || 'mensal',
-      frequencia_recorrencia: conta.frequencia_recorrencia?.toString() || '',
+      frequencia_recorrencia: conta.frequencia_recorrencia || 1,
       data_inicio_recorrencia: formatDateForInput(conta.data_inicio_recorrencia),
-      termino_apos_ocorrencias: conta.termino_apos_ocorrencias?.toString() || '',
+      termino_apos_ocorrencias: conta.termino_apos_ocorrencias || 0,
       n_docto_origem: conta.n_docto_origem || '',
       sku_parcela: conta.sku_parcela || '',
       intervalo_ini: conta.intervalo_ini || 0,
-      valor_financeiro: conta.valor_financeiro || 0,
-      intervalo_ini: conta.intervalo_ini?.toString() || '',
-      intervalo_rec: conta.intervalo_rec?.toString() || '',
+      n_doctos_ref: conta.n_doctos_ref || [],
+      projetos: conta.projetos || []
     });
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (conta: ContaPagar) => {
@@ -637,13 +643,17 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
         else if ((originalRecord?.eh_parcelado || originalRecord?.lancamento_pai_id || originalRecord?.total_parcelas > 1) && updatedRecord) {
           await checkForInstallmentReplication(originalRecord, updatedRecord);
         }
+        
+        showSuccess('Conta a pagar atualizada com sucesso');
       } else {
         await contasPagarServiceExtended.create(filteredData);
+        showSuccess('Conta a pagar criada com sucesso');
       }
       setIsModalOpen(false);
       await loadData();
     } catch (error) {
       console.error('Erro ao salvar conta:', error);
+      showError('Erro ao salvar conta a pagar');
     }
   };
 
@@ -1050,32 +1060,6 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
               placeholder="Ex: 12345"
             />
             
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nº Documentos Referência
-              </label>
-              <textarea
-                value={formData.n_doctos_ref}
-                onChange={(e) => setFormData({ ...formData, n_doctos_ref: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                rows={2}
-                placeholder="Ex: 12345, 67890, 11111 (separados por vírgula)"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Projetos
-              </label>
-              <textarea
-                value={formData.projetos}
-                onChange={(e) => setFormData({ ...formData, projetos: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                rows={2}
-                placeholder="Ex: Projeto A, Projeto B, Projeto C (separados por vírgula)"
-              />
-            </div>
-            
             <Input
               label="SKU da Parcela"
               value={formData.sku_parcela}
@@ -1090,14 +1074,6 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
               value={formData.intervalo_ini.toString()}
               onChange={(e) => setFormData({ ...formData, intervalo_ini: parseInt(e.target.value) || 0 })}
               min="0"
-            />
-            
-            <Input
-              label="Intervalo Recorrente (dias)"
-              type="number"
-              value={formData.intervalo_rec.toString()}
-              onChange={(e) => setFormData({ ...formData, intervalo_rec: parseInt(e.target.value) || 30 })}
-              min="1"
             />
             
             <div className="col-span-2">
