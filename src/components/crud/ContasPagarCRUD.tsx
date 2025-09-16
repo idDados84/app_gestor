@@ -362,10 +362,10 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
       n_docto_origem: '',
       sku_parcela: '',
       intervalo_ini: 0,
-      intervalo_rec: 30,
-    });
+      eh_vencto_fixo: false,
       n_doctos_ref: [],
-      projetos: [],
+      projetos: []
+    });
   };
 
   const handleEdit = (conta: ContaPagar) => {
