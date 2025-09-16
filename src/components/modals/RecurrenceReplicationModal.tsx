@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { CheckSquare, Square, Info, Calendar, DollarSign, FileText, Tag } from 'lucide-react';
+import { parseDateFromYYYYMMDD, formatDateToYYYYMMDD } from '../../utils/dateUtils';
 import type { ContaPagar, ContaReceber } from '../../types/database';
 
 interface FieldChange {
@@ -45,8 +46,8 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
 
       // Check data_vencimento
       if (originalRecord.data_vencimento !== updatedRecord.data_vencimento) {
-        const oldDate = new Date(originalRecord.data_vencimento);
-        const newDate = new Date(updatedRecord.data_vencimento);
+        const oldDate = parseDateFromYYYYMMDD(originalRecord.data_vencimento);
+        const newDate = parseDateFromYYYYMMDD(updatedRecord.data_vencimento);
         const oldDay = oldDate.getDate();
         const newDay = newDate.getDate();
         
@@ -253,11 +254,11 @@ const RecurrenceReplicationModal: React.FC<RecurrenceReplicationModalProps> = ({
                     {change.field === 'data_vencimento' && (
                       <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
                         <span className="line-through text-red-600">
-                          {new Date(change.oldValue).toLocaleDateString('pt-BR')}
+                          {parseDateFromYYYYMMDD(change.oldValue).toLocaleDateString('pt-BR')}
                         </span>
                         {' → '}
                         <span className="text-green-600 font-medium">
-                          {new Date(change.newValue).toLocaleDateString('pt-BR')}
+                          {parseDateFromYYYYMMDD(change.newValue).toLocaleDateString('pt-BR')}
                         </span>
                       </div>
                     )}

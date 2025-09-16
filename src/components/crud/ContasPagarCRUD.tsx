@@ -25,6 +25,7 @@ import {
   tiposDocumentosService
 } from '../../services/database';
 import { formatDateForInput, formatDateForDisplay } from '../../utils/dateUtils';
+import { parseDateFromYYYYMMDD, formatDateToYYYYMMDD } from '../../utils/dateUtils';
 import { calculateValorFinanceiro } from '../../utils/financialCalculations';
 import type { 
   ContaPagar, 
@@ -1050,8 +1051,70 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
           futureRecords: [] 
         })}
         onConfirm={async (selectedChanges) => {
-          // Implementation for recurrence replication
-          console.log('Recurrence replication:', selectedChanges);
+          try {
+            setLoading(true);
+            
+            if (!recurrenceReplicationModal.originalRecord || !recurrenceReplicationModal.updatedRecord) {
+              showError('Dados do registro original não encontrados');
+              return;
+            }
+            
+            const originalRecord = recurrenceReplicationModal.originalRecord;
+            const updatedRecord = recurrenceReplicationModal.updatedRecord;
+            const futureRecords = recurrenceReplicationModal.futureRecords;
+            
+            // Calculate date difference for data_vencimento changes
+            let dateDifference = 0;
+            const dateChange = selectedChanges.find(change => change.field === 'data_vencimento');
+            if (dateChange) {
+              const oldDate = parseDateFromYYYYMMDD(dateChange.oldValue);
+              const newDate = parseDateFromYYYYMMDD(dateChange.newValue);
+              dateDifference = newDate.getDate() - oldDate.getDate();
+            }
+            
+            // Apply changes to each future record
+            for (const futureRecord of futureRecords) {
+              const updates: any = {};
+              
+              for (const change of selectedChanges) {
+                switch (change.field) {
+                  case 'data_vencimento':
+                    // Apply date difference to maintain relative spacing
+                    const currentDate = parseDateFromYYYYMMDD(futureRecord.data_vencimento);
+                    currentDate.setDate(currentDate.getDate() + dateDifference);
+                    updates.data_vencimento = formatDateToYYYYMMDD(currentDate);
+                    break;
+                  case 'valor_parcela':
+                    updates.valor_parcela = change.newValue;
+                    updates.valor_operacao = change.newValue; // Keep valor_operacao in sync
+                    break;
+                  case 'descricao':
+                    updates.descricao = change.newValue;
+                    break;
+                  case 'categoria_id':
+                    updates.categoria_id = change.newValue;
+                    break;
+                  case 'observacoes':
+                    updates.observacoes = change.newValue;
+                    break;
+                  default:
+                    updates[change.field] = change.newValue;
+                    break;
+                }
+              }
+              
+              // Update the record
+              await contasPagarServiceExtended.update(futureRecord.id, updates);
+            }
+            
+            showSuccess(`Alterações aplicadas a ${futureRecords.length} registro(s) recorrente(s) futuro(s)`);
+            await loadData();
+          } catch (error) {
+            console.error('Erro ao replicar alterações:', error);
+            showError('Erro ao aplicar alterações aos registros recorrentes');
+          } finally {
+            setLoading(false);
+          }
           setRecurrenceReplicationModal({ 
             isOpen: false, 
             originalRecord: null, 
