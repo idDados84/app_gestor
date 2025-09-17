@@ -253,6 +253,145 @@ export interface ElectronicData {
   numeroNsu?: string;
 }
 
+// Novas interfaces para as 4 tabelas centralizadas
+export interface Faturamento {
+  id_faturamento: string;
+  cod_faturamento?: string;
+  n_documento_origem?: string;
+  dt_faturamento: string;
+  valor_original: number;
+  cod_participante?: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string;
+}
+
+export interface Parcelamento {
+  id_parcelamento: string;
+  id_faturamento_fk: string;
+  valor_base: number;
+  qtd_parcelas: number;
+  valor_entrada?: number;
+  juros: number;
+  multas: number;
+  atualizacao: number;
+  descontos: number;
+  abatimentos: number;
+  valor_total_parcelas: number;
+  dt_vencimento_entrada?: string;
+  intervalo_ini: number;
+  intervalo_rec: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string;
+  // Relacionamentos
+  tbl_faturamentos?: Faturamento;
+}
+
+export interface Parcela {
+  id_parcela: string;
+  sku_parcela?: string;
+  id_parcelamento_fk: string;
+  n_parcela: number;
+  valor_parcela: number;
+  dt_vencimento: string;
+  status_parcela: 'Aberto' | 'Parcial' | 'Liquidado' | 'Cancelado';
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string;
+  // Relacionamentos
+  tbl_parcelamentos?: Parcelamento;
+}
+
+export interface TransacaoFinanceira {
+  id_transacao: string;
+  id_faturamento_fk: string;
+  id_parcela_fk: string;
+  tipo_transacao: 'Entrada' | 'Pagamento de Parcela' | 'Estorno' | 'Ajuste';
+  dt_pagamento: string;
+  valor_pago: number;
+  digito_ordem_pagamento: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string;
+  // Relacionamentos
+  tbl_faturamentos?: Faturamento;
+  tbl_parcelas?: Parcela;
+}
+
+// Interface unificada para visualização no frontend (combina dados das 4 tabelas)
+export interface RegistroFinanceiroCompleto {
+  // Identificadores
+  id_faturamento: string;
+  id_parcelamento: string;
+  id_parcela: string;
+  
+  // Dados do faturamento
+  cod_faturamento?: string;
+  n_documento_origem?: string;
+  dt_faturamento: string;
+  valor_original: number;
+  cod_participante?: string;
+  
+  // Dados do parcelamento
+  valor_base: number;
+  qtd_parcelas: number;
+  valor_entrada?: number;
+  juros: number;
+  multas: number;
+  atualizacao: number;
+  descontos: number;
+  abatimentos: number;
+  valor_total_parcelas: number;
+  dt_vencimento_entrada?: string;
+  intervalo_ini: number;
+  intervalo_rec: number;
+  
+  // Dados da parcela
+  sku_parcela?: string;
+  n_parcela: number;
+  valor_parcela: number;
+  dt_vencimento: string;
+  status_parcela: 'Aberto' | 'Parcial' | 'Liquidado' | 'Cancelado';
+  
+  // Campos de controle
+  tipo_registro: 'pagar' | 'receber'; // Para separar no frontend
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string;
+  
+  // Relacionamentos externos (mantidos para compatibilidade)
+  empresa_id?: string;
+  participante_id?: string; // cliente_id ou fornecedor_id
+  categoria_id?: string;
+  departamento_id?: string;
+  forma_cobranca_id?: string;
+  conta_cobranca_id?: string;
+  tipo_documento_id?: string;
+  descricao?: string;
+  observacoes?: string;
+  
+  // Dados eletrônicos e outros
+  dados_ele?: ElectronicData;
+  id_autorizacao?: string;
+  n_doctos_ref?: string[];
+  projetos?: string[];
+  eh_vencto_fixo?: boolean;
+  
+  // Relacionamentos carregados
+  empresas?: Empresa;
+  participantes?: Participante;
+  categorias?: Categoria;
+  departamentos?: Departamento;
+  formas_cobranca?: FormaCobranca;
+  tipos_documentos?: TipoDocumento;
+  
+  // Dados de transações (para exibição de pagamentos)
+  transacoes?: TransacaoFinanceira[];
+  valor_pago_total?: number;
+  valor_saldo?: number;
+}
+
 export interface FieldChange {
   field: string;
   label: string;
