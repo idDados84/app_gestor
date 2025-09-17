@@ -23,9 +23,10 @@ import {
   contasFinanceirasService,
   tiposDocumentosService
 } from '../../services/database';
+import { supabase } from '../../lib/supabase';
 import { formatDateForInput, formatDateForDisplay } from '../../utils/dateUtils';
 import { calculateValorFinanceiro } from '../../utils/financialCalculations';
-import { Settings, Users, Calendar } from 'lucide-react';
+import { Settings, Users, Calendar, RefreshCw } from 'lucide-react';
 import type { 
   ContaPagar, 
   Empresa, 
@@ -220,9 +221,9 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
               title={item.eh_recorrente ? 'Gerenciar Assinaturas' : 'Gerenciar Parcelas'}
             >
               {item.eh_recorrente ? (
-                <Calendar className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4" />
               ) : (
-                <Settings className="h-4 w-4" />
+                <Calendar className="h-4 w-4" />
               )}
             </button>
           </div>
@@ -318,6 +319,32 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     setEditingConta(null);
     resetFormData();
     setIsModalOpen(true);
+  };
+
+  const handleSeriesManagement = async (conta: ContaPagar) => {
+    try {
+      // Find all related records in the series
+      const parentId = conta.lancamento_pai_id || conta.id;
+      const { data: relatedRecords, error } = await supabase
+        .from('contas_pagar')
+        .select('*')
+        .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+        .is('deleted_at', null)
+        .order('data_vencimento', { ascending: true });
+        
+      if (error) throw error;
+      
+      const isRecurringSeries = conta.eh_recorrente || relatedRecords?.some(r => r.eh_recorrente) || false;
+      
+      setInstallmentManagementModal({
+        isOpen: true,
+        records: relatedRecords || [conta],
+        isRecurringSeries
+      });
+    } catch (error) {
+      console.error('Erro ao carregar série:', error);
+      showError('Erro ao carregar série de registros');
+    }
   };
 
   const handleEdit = (conta: ContaPagar) => {

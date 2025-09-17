@@ -26,7 +26,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { formatDateForInput, formatDateForDisplay } from '../../utils/dateUtils';
 import { calculateValorFinanceiro } from '../../utils/financialCalculations';
-import { Settings, Users, Calendar } from 'lucide-react';
+import { Settings, Users, Calendar, RefreshCw } from 'lucide-react';
 import type { 
   ContaReceber, 
   Empresa, 
@@ -221,9 +221,9 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
               title={item.eh_recorrente ? 'Gerenciar Assinaturas' : 'Gerenciar Parcelas'}
             >
               {item.eh_recorrente ? (
-                <Calendar className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4" />
               ) : (
-                <Settings className="h-4 w-4" />
+                <Calendar className="h-4 w-4" />
               )}
             </button>
           </div>
@@ -322,55 +322,46 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
   };
 
   const handleEdit = (conta: ContaReceber) => {
-    // Check if this record is part of a series (installments or recurring)
-    const isPartOfSeries = conta.eh_parcelado || conta.eh_recorrente || conta.lancamento_pai_id || (conta.total_parcelas && conta.total_parcelas > 1);
-    
-    if (isPartOfSeries) {
-      // Open installment management modal for series
-      handleSeriesManagement(conta);
-    } else {
-      // Normal single record edit
-      setEditingConta(conta);
-      setFormData({
-        empresa_id: conta.empresa_id,
-        cliente_id: conta.cliente_id,
-        categoria_id: conta.categoria_id || '',
-        departamento_id: conta.departamento_id || '',
-        forma_cobranca_id: conta.forma_cobranca_id || '',
-        conta_cobranca_id: conta.conta_cobranca_id || '',
-        tipo_documento_id: conta.tipo_documento_id || '',
-        descricao: conta.descricao,
-        valor_operacao: conta.valor_operacao?.toString() || '',
-        valor_juros: conta.valor_juros?.toString() || '',
-        valor_multas: conta.valor_multas?.toString() || '',
-        valor_atualizacao: conta.valor_atualizacao?.toString() || '',
-        valor_descontos: conta.valor_descontos?.toString() || '',
-        valor_abto: conta.valor_abto?.toString() || '',
-        valor_pagto: conta.valor_pagto?.toString() || '',
-        valor_parcela: conta.valor_parcela?.toString() || '',
-        status: conta.status,
-        data_vencimento: formatDateForInput(conta.data_vencimento),
-        data_recebimento: formatDateForInput(conta.data_recebimento),
-        observacoes: conta.observacoes || '',
-        dados_ele: conta.dados_ele || null,
-        id_autorizacao: conta.id_autorizacao || '',
-        eh_parcelado: conta.eh_parcelado || false,
-        total_parcelas: conta.total_parcelas?.toString() || '',
-        eh_recorrente: conta.eh_recorrente || false,
-        periodicidade: conta.periodicidade || '',
-        frequencia_recorrencia: conta.frequencia_recorrencia?.toString() || '',
-        data_inicio_recorrencia: formatDateForInput(conta.data_inicio_recorrencia),
-        termino_apos_ocorrencias: conta.termino_apos_ocorrencias?.toString() || '',
-        n_docto_origem: conta.n_docto_origem || '',
-        n_doctos_ref: conta.n_doctos_ref || [],
-        projetos: conta.projetos || [],
-        sku_parcela: conta.sku_parcela || '',
-        intervalo_ini: conta.intervalo_ini?.toString() || '',
-        intervalo_rec: conta.intervalo_rec?.toString() || '',
-        eh_vencto_fixo: conta.eh_vencto_fixo || false
-      });
-      setIsModalOpen(true);
-    }
+    setEditingConta(conta);
+    setFormData({
+      empresa_id: conta.empresa_id,
+      cliente_id: conta.cliente_id,
+      categoria_id: conta.categoria_id || '',
+      departamento_id: conta.departamento_id || '',
+      forma_cobranca_id: conta.forma_cobranca_id || '',
+      conta_cobranca_id: conta.conta_cobranca_id || '',
+      tipo_documento_id: conta.tipo_documento_id || '',
+      descricao: conta.descricao,
+      valor_operacao: conta.valor_operacao?.toString() || '',
+      valor_juros: conta.valor_juros?.toString() || '',
+      valor_multas: conta.valor_multas?.toString() || '',
+      valor_atualizacao: conta.valor_atualizacao?.toString() || '',
+      valor_descontos: conta.valor_descontos?.toString() || '',
+      valor_abto: conta.valor_abto?.toString() || '',
+      valor_pagto: conta.valor_pagto?.toString() || '',
+      valor_parcela: conta.valor_parcela?.toString() || '',
+      status: conta.status,
+      data_vencimento: formatDateForInput(conta.data_vencimento),
+      data_recebimento: formatDateForInput(conta.data_recebimento),
+      observacoes: conta.observacoes || '',
+      dados_ele: conta.dados_ele || null,
+      id_autorizacao: conta.id_autorizacao || '',
+      eh_parcelado: conta.eh_parcelado || false,
+      total_parcelas: conta.total_parcelas?.toString() || '',
+      eh_recorrente: conta.eh_recorrente || false,
+      periodicidade: conta.periodicidade || '',
+      frequencia_recorrencia: conta.frequencia_recorrencia?.toString() || '',
+      data_inicio_recorrencia: formatDateForInput(conta.data_inicio_recorrencia),
+      termino_apos_ocorrencias: conta.termino_apos_ocorrencias?.toString() || '',
+      n_docto_origem: conta.n_docto_origem || '',
+      n_doctos_ref: conta.n_doctos_ref || [],
+      projetos: conta.projetos || [],
+      sku_parcela: conta.sku_parcela || '',
+      intervalo_ini: conta.intervalo_ini?.toString() || '',
+      intervalo_rec: conta.intervalo_rec?.toString() || '',
+      eh_vencto_fixo: conta.eh_vencto_fixo || false
+    });
+    setIsModalOpen(true);
   };
 
   const handleSeriesManagement = async (conta: ContaReceber) => {
