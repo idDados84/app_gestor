@@ -25,6 +25,7 @@ import {
 } from '../../services/database';
 import { formatDateForInput, formatDateForDisplay } from '../../utils/dateUtils';
 import { calculateValorFinanceiro } from '../../utils/financialCalculations';
+import { Settings, Users, Calendar } from 'lucide-react';
 import type { 
   ContaReceber, 
   Empresa, 
@@ -198,6 +199,34 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
           return `${value || 1}/${item.total_parcelas}`;
         }
         return '-';
+      }
+    },
+    {
+      key: 'id' as keyof ContaReceber,
+      header: 'Gerenciar',
+      render: (value: string, item: ContaReceber) => {
+        const isPartOfSeries = item.eh_parcelado || item.eh_recorrente || item.lancamento_pai_id || (item.total_parcelas && item.total_parcelas > 1);
+        
+        if (!isPartOfSeries) return '-';
+        
+        return (
+          <div className="flex space-x-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSeriesManagement(item);
+              }}
+              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+              title={item.eh_recorrente ? 'Gerenciar Assinaturas' : 'Gerenciar Parcelas'}
+            >
+              {item.eh_recorrente ? (
+                <Calendar className="h-4 w-4" />
+              ) : (
+                <Settings className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        );
       }
     }
   ];
