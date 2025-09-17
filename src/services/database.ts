@@ -980,7 +980,8 @@ export const registrosFinanceirosService = {
         relatedRecords: registrosRelacionados.filter(Boolean) as RegistroFinanceiroCompleto[]
       };
     }
-
+          status_parcela: 'Aberto',
+          tipo_registro: tipo
     // Registro simples - pode ser excluído normalmente
     return { canDelete: true };
   }
