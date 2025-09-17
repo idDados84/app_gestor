@@ -1156,9 +1156,86 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
           updatedRecord: null, 
           futureInstallments: [] 
         })}
-        onConfirm={handleInstallmentReplication}
-        originalRecord={installmentReplicationModal.originalRecord!}
-        updatedRecord={installmentReplicationModal.updatedRecord!}
+        onConfirm={async (selectedChanges) => {
+          try {
+            setLoading(true);
+            
+            if (!installmentReplicationModal.originalRecord || !installmentReplicationModal.updatedRecord) {
+              showError('Dados da parcela original não encontrados');
+              return;
+            }
+            
+            const originalRecord = installmentReplicationModal.originalRecord;
+            const updatedRecord = installmentReplicationModal.updatedRecord;
+            const futureInstallments = installmentReplicationModal.futureInstallments;
+            
+            // Filter future installments to only open ones
+            const futureOpenInstallments = futureInstallments.filter(record => {
+              const status = record.status.toLowerCase();
+              return status !== 'pago' && status !== 'cancelado';
+            });
+            
+            if (futureOpenInstallments.length === 0) {
+              showError('Nenhuma parcela futura em aberto para aplicar as alterações');
+              return;
+            }
+            
+            let updatedCount = 0;
+            
+            // Apply changes to each future open installment
+            for (const futureInstallment of futureOpenInstallments) {
+              const updates: any = {};
+              
+              for (const change of selectedChanges) {
+                if (change.field === 'data_vencimento') {
+                  // For installments, maintain monthly intervals
+                  const originalDate = new Date(originalRecord.data_vencimento);
+                  const updatedDate = new Date(updatedRecord.data_vencimento);
+                  const dayDifference = updatedDate.getDate() - originalDate.getDate();
+                  
+                  const futureDate = new Date(futureInstallment.data_vencimento);
+                  futureDate.setDate(futureDate.getDate() + dayDifference);
+                  
+                  updates.data_vencimento = formatDateToYYYYMMDD(futureDate);
+                } else if (change.field === 'valor_parcela') {
+                  updates.valor_parcela = change.newValue;
+                  updates.valor_operacao = change.newValue;
+                } else {
+                  // Handle other fields generically
+                  let value = change.newValue;
+                  
+                  // Convert empty strings to null for nullable fields
+                  if (value === '' && change.field.includes('_id')) {
+                    value = null;
+                  }
+                  
+                  updates[change.field] = value;
+                }
+              }
+              
+              // Only update if there are actual changes
+              if (Object.keys(updates).length > 0) {
+                await contasPagarServiceExtended.update(futureInstallment.id, updates);
+                updatedCount++;
+              }
+            }
+            
+            if (updatedCount > 0) {
+              showSuccess(`${selectedChanges.length} alteração(ões) aplicada(s) com sucesso a ${updatedCount} parcela(s) futura(s)`);
+            } else {
+              showSuccess('Nenhuma alteração foi necessária - todas as parcelas já estão atualizadas');
+            }
+            
+            await loadData();
+          } catch (error) {
+            console.error('Erro ao replicar alterações nas parcelas:', error);
+            showError(`Erro ao aplicar alterações às parcelas futuras: ${(error as any)?.message || error}`);
+          } finally {
+            setLoading(false);
+          }
+        }}
+        originalRecord={installmentReplicationModal.originalRecord}
+        updatedRecord={installmentReplicationModal.updatedRecord}
         futureInstallments={installmentReplicationModal.futureInstallments}
         type="pagar"
       />
