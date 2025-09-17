@@ -63,11 +63,6 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     isOpen: boolean;
     item: ContaPagar | null;
   }>({ isOpen: false, item: null });
-  const { showError: internalShowError, showSuccess: internalShowSuccess } = useToast();
-  
-  // Use external toast functions if provided, otherwise use internal ones
-  const showError = externalShowError || internalShowError;
-  const showSuccess = externalShowSuccess || internalShowSuccess;
   const [massCancellationModal, setMassCancellationModal] = useState<{
     isOpen: boolean;
     records: ContaPagar[];
@@ -93,6 +88,11 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     isOpen: boolean;
     initialData: ElectronicData | null;
   }>({ isOpen: false, initialData: null });
+  const { showError: internalShowError, showSuccess: internalShowSuccess } = useToast();
+  
+  // Use external toast functions if provided, otherwise use internal ones
+  const showError = externalShowError || internalShowError;
+  const showSuccess = externalShowSuccess || internalShowSuccess;
   
   const [formData, setFormData] = useState({
     empresa_id: '',
