@@ -460,25 +460,15 @@ export const contasPagarServiceExtended = {
         // Assuming monthly installments for simplicity, adjust as needed
         installmentDate.setMonth(installmentDate.getMonth() + i);
 
-        // Generate SKU for this installment
-        const generatedSku = await generateSkuForNewRecord(
-          item.tipo_documento_id,
-          item.n_docto_origem,
-          item.fornecedor_id,
-          i + 1, // currentInstallmentNum
-          item.total_parcelas  // totalInstallmentsInSeries
-        );
-
         const installmentItem = {
           ...item,
           valor_parcela: valoresParcelas[i] || 0,
           numero_parcela: i + 1,
           total_parcelas: item.total_parcelas,
           data_vencimento: formatDateToYYYYMMDD(installmentDate),
-          eh_parcelado: true, // Mark as part of installment series
+          eh_parcelado: false, // Subsequent items are not parcelled themselves
           eh_recorrente: false, // Installments are not recurring
           lancamento_pai_id: parentId,
-          sku_parcela: generatedSku,
         };
 
         const { data: createdInstallment, error } = await supabase.from('contas_pagar').insert([installmentItem]).select().single();
@@ -757,15 +747,25 @@ export const contasReceberServiceExtended = {
         // Assuming monthly installments for simplicity, adjust as needed
         installmentDate.setMonth(installmentDate.getMonth() + i);
 
+        // Generate SKU for this installment
+        const generatedSku = await generateSkuForNewRecord(
+          item.tipo_documento_id,
+          item.n_docto_origem,
+          item.cliente_id,
+          i + 1, // currentInstallmentNum
+          item.total_parcelas  // totalInstallmentsInSeries
+        );
+
         const installmentItem = {
           ...item,
           valor_parcela: valoresParcelas[i] || 0,
           numero_parcela: i + 1,
           total_parcelas: item.total_parcelas,
           data_vencimento: formatDateToYYYYMMDD(installmentDate),
-          eh_parcelado: false, // Subsequent items are not parcelled themselves
+          eh_parcelado: true, // Mark as part of installment series
           eh_recorrente: false, // Installments are not recurring
           lancamento_pai_id: parentId,
+          sku_parcela: generatedSku,
         };
 
         const { data: createdInstallment, error } = await supabase.from('contas_receber').insert([installmentItem]).select().single();

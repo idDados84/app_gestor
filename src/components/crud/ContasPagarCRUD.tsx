@@ -218,7 +218,7 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
                 handleSeriesManagement(item);
               }}
               className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
-              title={item.eh_recorrente ? 'Gerenciar Assinaturas' : 'Gerenciar Parcelas'}
+              title={item.eh_recorrente ? 'Gerenciar Recorrência' : 'Gerenciar Parcelas'}
             >
               {item.eh_recorrente ? (
                 <RefreshCw className="h-4 w-4" />
