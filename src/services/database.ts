@@ -650,4 +650,147 @@ export const registrosFinanceirosService = {
     // Campos do parcelamento
     if (updates.valor_entrada !== undefined) parcelamentoUpdates.valor_entrada = updates.valor_entrada;
     if (updates.juros !== undefined) parcelamentoUpdates.juros = updates.juros;
-    if (updates.multas !== undefined) parcelamento
+    if (updates.multas !== undefined) parcelamentoUpdates.multas = updates.multas;
+    if (updates.atualizacao !== undefined) parcelamentoUpdates.atualizacao = updates.atualizacao;
+    if (updates.descontos !== undefined) parcelamentoUpdates.descontos = updates.descontos;
+    if (updates.abatimentos !== undefined) parcelamentoUpdates.abatimentos = updates.abatimentos;
+    if (updates.dt_vencimento_entrada !== undefined) parcelamentoUpdates.dt_vencimento_entrada = updates.dt_vencimento_entrada;
+    if (updates.intervalo_ini !== undefined) parcelamentoUpdates.intervalo_ini = updates.intervalo_ini;
+    if (updates.intervalo_rec !== undefined) parcelamentoUpdates.intervalo_rec = updates.intervalo_rec;
+    
+    // Campos da parcela
+    if (updates.sku_parcela !== undefined) parcelaUpdates.sku_parcela = updates.sku_parcela;
+    if (updates.dt_vencimento !== undefined) parcelaUpdates.dt_vencimento = updates.dt_vencimento;
+    if (updates.status_parcela !== undefined) parcelaUpdates.status_parcela = updates.status_parcela;
+    
+    // Executar updates nas tabelas necessárias
+    if (Object.keys(faturamentoUpdates).length > 0) {
+      const { error: faturamentoError } = await supabase
+        .from('tbl_faturamentos')
+        .update(faturamentoUpdates)
+        .eq('id_faturamento', faturamento.id_faturamento);
+      
+      if (faturamentoError) throw faturamentoError;
+    }
+    
+    if (Object.keys(parcelamentoUpdates).length > 0) {
+      const { error: parcelamentoError } = await supabase
+        .from('tbl_parcelamentos')
+        .update(parcelamentoUpdates)
+        .eq('id_parcelamento', parcelamento.id_parcelamento);
+      
+      if (parcelamentoError) throw parcelamentoError;
+    }
+    
+    if (Object.keys(parcelaUpdates).length > 0) {
+      const { error: parcelaError } = await supabase
+        .from('tbl_parcelas')
+        .update(parcelaUpdates)
+        .eq('id_parcela', idParcela);
+      
+      if (parcelaError) throw parcelaError;
+    }
+    
+    // Buscar dados atualizados para retorno
+    const registrosAtualizados = await this.getAllByTipo(parcelaAtual.tipo_registro as 'pagar' | 'receber');
+    const registroAtualizado = registrosAtualizados.find(r => r.id_parcela === idParcela);
+    
+    if (!registroAtualizado) {
+      throw new Error('Erro ao buscar registro atualizado');
+    }
+    
+    return registroAtualizado;
+  },
+
+  // Excluir registro financeiro (soft delete)
+  async delete(idParcela: string): Promise<void> {
+    if (!isSupabaseConfigured()) {
+      throwConfigError();
+    }
+    
+    // Buscar dados da parcela para obter IDs relacionados
+    const { data: parcela, error: parcelaError } = await supabase
+      .from('tbl_parcelas')
+      .select(`
+        *,
+        tbl_parcelamentos!inner (
+          *,
+          tbl_faturamentos!inner (*)
+        )
+      `)
+      .eq('id_parcela', idParcela)
+      .is('deleted_at', null)
+      .single();
+    
+    if (parcelaError || !parcela) throw parcelaError || new Error('Parcela não encontrada');
+    
+    const parcelamento = parcela.tbl_parcelamentos;
+    const faturamento = parcelamento.tbl_faturamentos;
+    
+    // Soft delete em cascata
+    const now = new Date().toISOString();
+    
+    // Marcar parcela como excluída
+    const { error: parcelaDeleteError } = await supabase
+      .from('tbl_parcelas')
+      .update({ deleted_at: now })
+      .eq('id_parcela', idParcela);
+    
+    if (parcelaDeleteError) throw parcelaDeleteError;
+    
+    // Verificar se há outras parcelas ativas no parcelamento
+    const { data: outrasParcelasAtivas, error: outrasParcelasError } = await supabase
+      .from('tbl_parcelas')
+      .select('id_parcela')
+      .eq('id_parcelamento_fk', parcelamento.id_parcelamento)
+      .is('deleted_at', null);
+    
+    if (outrasParcelasError) throw outrasParcelasError;
+    
+    // Se não há outras parcelas ativas, marcar parcelamento como excluído
+    if (!outrasParcelasAtivas || outrasParcelasAtivas.length === 0) {
+      const { error: parcelamentoDeleteError } = await supabase
+        .from('tbl_parcelamentos')
+        .update({ deleted_at: now })
+        .eq('id_parcelamento', parcelamento.id_parcelamento);
+      
+      if (parcelamentoDeleteError) throw parcelamentoDeleteError;
+      
+      // Verificar se há outros parcelamentos ativos no faturamento
+      const { data: outrosParcelamentosAtivos, error: outrosParcelamentosError } = await supabase
+        .from('tbl_parcelamentos')
+        .select('id_parcelamento')
+        .eq('id_faturamento_fk', faturamento.id_faturamento)
+        .is('deleted_at', null);
+      
+      if (outrosParcelamentosError) throw outrosParcelamentosError;
+      
+      // Se não há outros parcelamentos ativos, marcar faturamento como excluído
+      if (!outrosParcelamentosAtivos || outrosParcelamentosAtivos.length === 0) {
+        const { error: faturamentoDeleteError } = await supabase
+          .from('tbl_faturamentos')
+          .update({ deleted_at: now })
+          .eq('id_faturamento', faturamento.id_faturamento);
+        
+        if (faturamentoDeleteError) throw faturamentoDeleteError;
+      }
+    }
+  },
+
+  // Gerar SKU único para parcela
+  async generateSKU(
+    codFaturamento: string,
+    nDocumentoOrigem: string,
+    nParcela: number,
+    qtdParcelas: number,
+    codParticipante: string
+  ): Promise<string> {
+    return generateSkuForNewRecord(
+      codFaturamento,
+      nDocumentoOrigem,
+      nParcela,
+      qtdParcelas,
+      codParticipante
+    );
+  }
+};
