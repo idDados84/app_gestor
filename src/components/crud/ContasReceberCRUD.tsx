@@ -23,6 +23,7 @@ import {
   contasFinanceirasService,
   tiposDocumentosService
 } from '../../services/database';
+import { supabase } from '../../lib/supabase';
 import { formatDateForInput, formatDateForDisplay } from '../../utils/dateUtils';
 import { calculateValorFinanceiro } from '../../utils/financialCalculations';
 import { Settings, Users, Calendar } from 'lucide-react';
