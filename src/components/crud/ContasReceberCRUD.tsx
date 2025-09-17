@@ -561,8 +561,8 @@ const ContasReceberCRUD: React.FC<ContasReceberCRUDProps> = ({
       // Simple record - show confirmation dialog
       setConfirmDialog({ isOpen: true, item: conta });
     } catch (error) {
-      console.error('Erro ao verificar possibilidade de exclusão:', error);
-      showError('Erro ao verificar possibilidade de exclusão');
+      console.error('Erro ao verificar permissões de exclusão:', error);
+      showError('Erro ao verificar permissões de exclusão');
     }
   };
 
