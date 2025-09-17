@@ -252,149 +252,271 @@ export const contasCobrancaServiceExtended = {
 
 // Extended service for contas a pagar with compatibility methods
 export const contasPagarServiceExtended = {
-  ...createExtendedService(contasPagarService),
   async getAllWithRelations(): Promise<ContaPagar[]> {
     if (!isSupabaseConfigured()) {
       throwConfigError();
     }
     
-    // Buscar registros das 4 tabelas centralizadas com tipo 'pagar'
-    const registros = await registrosFinanceirosService.getAllByTipo('pagar');
+    const { data, error } = await supabase
+      .from('contas_pagar')
+      .select(`
+        *, 
+        empresas(*), 
+        participantes(*), 
+        categorias(*), 
+        departamentos(*), 
+        formas_cobranca(*),
+        tipos_documentos(*)
+      `)
+      .is('deleted_at', null);
     
-    // Converter para formato ContaPagar para compatibilidade com frontend
-    return registros.map(registro => ({
-      id: registro.id_parcela,
-      empresa_id: registro.empresa_id,
-      fornecedor_id: registro.participante_id,
-      categoria_id: registro.categoria_id,
-      departamento_id: registro.departamento_id,
-      forma_cobranca_id: registro.forma_cobranca_id,
-      descricao: registro.descricao || '',
-      valor_parcela: registro.valor_parcela,
-      status: registro.status_parcela === 'Liquidado' ? 'pago' : 
-              registro.status_parcela === 'Cancelado' ? 'cancelado' : 'pendente',
-      data_vencimento: registro.dt_vencimento,
-      data_pagamento: registro.transacoes && registro.transacoes.length > 0 ? 
-                     registro.transacoes[0].dt_pagamento : null,
-      observacoes: registro.observacoes,
-      created_at: registro.created_at,
-      updated_at: registro.updated_at,
-      dados_ele: registro.dados_ele,
-      id_autorizacao: registro.id_autorizacao,
-      eh_parcelado: registro.qtd_parcelas > 1,
-      total_parcelas: registro.qtd_parcelas,
-      numero_parcela: registro.n_parcela,
-      lancamento_pai_id: registro.id_faturamento,
-      eh_recorrente: false, // TODO: implementar lógica de recorrência
-      periodicidade: null,
-      frequencia_recorrencia: null,
-      data_inicio_recorrencia: null,
-      termino_apos_ocorrencias: null,
-      deleted_at: registro.deleted_at,
-      conta_cobranca_id: registro.conta_cobranca_id,
-      tipo_documento_id: registro.tipo_documento_id,
-      sku_parcela: registro.sku_parcela,
-      intervalo_ini: registro.intervalo_ini,
-      intervalo_rec: registro.intervalo_rec,
-      n_docto_origem: registro.n_documento_origem,
-      n_doctos_ref: registro.n_doctos_ref,
-      projetos: registro.projetos,
-      eh_vencto_fixo: registro.eh_vencto_fixo,
-      valor_operacao: registro.valor_original,
-      valor_juros: registro.juros,
-      valor_multas: registro.multas,
-      valor_atualizacao: registro.atualizacao,
-      valor_descontos: registro.descontos,
-      valor_abto: registro.abatimentos,
-      valor_pagto: registro.valor_pago_total,
-      valor_financeiro: registro.valor_saldo
-    }));
+    if (error) throw error;
+    return data || [];
   },
   
+  async create(item: Omit<ContaPagar, 'id' | 'created_at' | 'updated_at'>): Promise<ContaPagar> {
+    if (!isSupabaseConfigured()) {
+      throwConfigError();
+    }
+    
+    const { data, error } = await supabase
+      .from('contas_pagar')
+      .insert([item])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: string, updates: Partial<Omit<ContaPagar, 'id' | 'created_at' | 'updated_at'>>): Promise<ContaPagar> {
+    if (!isSupabaseConfigured()) {
+      throwConfigError();
+    }
+    
+    const { data, error } = await supabase
+      .from('contas_pagar')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('deleted_at', null)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string): Promise<void> {
+    if (!isSupabaseConfigured()) {
+      throwConfigError();
+    }
+    
+    const { error } = await supabase
+      .from('contas_pagar')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('deleted_at', null);
+    
+    if (error) throw error;
+  },
+
   async canDelete(id: string): Promise<{ canDelete: boolean; reason?: string }> {
-    // Placeholder - sempre permite exclusão por enquanto
-    return { canDelete: true };
+    if (!isSupabaseConfigured()) {
+      return { canDelete: false, reason: 'Please connect to Supabase first' };
+    }
+    
+    try {
+      // Check if this record is part of a series (installments or recurring)
+      const { data: record, error } = await supabase
+        .from('contas_pagar')
+        .select('*')
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single();
+      
+      if (error || !record) {
+        return { canDelete: false, reason: 'Registro não encontrado' };
+      }
+      
+      // If it's part of a series, check for related records
+      if (record.eh_parcelado || record.eh_recorrente || record.lancamento_pai_id || (record.total_parcelas && record.total_parcelas > 1)) {
+        const parentId = record.lancamento_pai_id || record.id;
+        const { data: relatedRecords, error: relatedError } = await supabase
+          .from('contas_pagar')
+          .select('*')
+          .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+          .is('deleted_at', null);
+        
+        if (relatedError) throw relatedError;
+        
+        if (relatedRecords && relatedRecords.length > 1) {
+          return { 
+            canDelete: false, 
+            reason: 'Este registro faz parte de uma série. Use o cancelamento em massa.',
+            requiresMassModal: true,
+            relatedRecords
+          };
+        }
+      }
+      
+      // Simple record - can be deleted normally
+      return { canDelete: true };
+    } catch (error) {
+      console.error('Error checking delete permissions:', error);
+      return { canDelete: false, reason: 'Erro ao verificar permissões de exclusão' };
+    }
   },
   
   async cancelRecords(ids: string[]): Promise<void> {
-    // Placeholder - implementar cancelamento em massa
-    for (const id of ids) {
-      await registrosFinanceirasService.update(id, { status_parcela: 'Cancelado' });
+    if (!isSupabaseConfigured()) {
+      throwConfigError();
     }
+    
+    const { error } = await supabase
+      .from('contas_pagar')
+      .update({ 
+        status: 'cancelado',
+        updated_at: new Date().toISOString()
+      })
+      .in('id', ids)
+      .is('deleted_at', null);
+    
+    if (error) throw error;
   }
 };
 
 // Extended service for contas a receber with compatibility methods
 export const contasReceberServiceExtended = {
-  ...createExtendedService(contasReceberService),
   async getAllWithRelations(): Promise<ContaReceber[]> {
     if (!isSupabaseConfigured()) {
       throwConfigError();
     }
     
-    // Buscar registros das 4 tabelas centralizadas com tipo 'receber'
-    const registros = await registrosFinanceirosService.getAllByTipo('receber');
+    const { data, error } = await supabase
+      .from('contas_receber')
+      .select(`
+        *, 
+        empresas(*), 
+        participantes(*), 
+        categorias(*), 
+        departamentos(*), 
+        formas_cobranca(*),
+        tipos_documentos(*)
+      `)
+      .is('deleted_at', null);
     
-    // Converter para formato ContaReceber para compatibilidade com frontend
-    return registros.map(registro => ({
-      id: registro.id_parcela,
-      empresa_id: registro.empresa_id,
-      cliente_id: registro.participante_id,
-      categoria_id: registro.categoria_id,
-      departamento_id: registro.departamento_id,
-      forma_cobranca_id: registro.forma_cobranca_id,
-      descricao: registro.descricao || '',
-      valor_parcela: registro.valor_parcela,
-      status: registro.status_parcela === 'Liquidado' ? 'recebido' : 
-              registro.status_parcela === 'Cancelado' ? 'cancelado' : 'pendente',
-      data_vencimento: registro.dt_vencimento,
-      data_recebimento: registro.transacoes && registro.transacoes.length > 0 ? 
-                       registro.transacoes[0].dt_pagamento : null,
-      observacoes: registro.observacoes,
-      created_at: registro.created_at,
-      updated_at: registro.updated_at,
-      dados_ele: registro.dados_ele,
-      id_autorizacao: registro.id_autorizacao,
-      eh_parcelado: registro.qtd_parcelas > 1,
-      total_parcelas: registro.qtd_parcelas,
-      numero_parcela: registro.n_parcela,
-      lancamento_pai_id: registro.id_faturamento,
-      eh_recorrente: false, // TODO: implementar lógica de recorrência
-      periodicidade: null,
-      frequencia_recorrencia: null,
-      data_inicio_recorrencia: null,
-      termino_apos_ocorrencias: null,
-      deleted_at: registro.deleted_at,
-      conta_cobranca_id: registro.conta_cobranca_id,
-      tipo_documento_id: registro.tipo_documento_id,
-      sku_parcela: registro.sku_parcela,
-      intervalo_ini: registro.intervalo_ini,
-      intervalo_rec: registro.intervalo_rec,
-      n_docto_origem: registro.n_documento_origem,
-      n_doctos_ref: registro.n_doctos_ref,
-      projetos: registro.projetos,
-      eh_vencto_fixo: registro.eh_vencto_fixo,
-      valor_abto: registro.abatimentos,
-      valor_operacao: registro.valor_original,
-      valor_juros: registro.juros,
-      valor_multas: registro.multas,
-      valor_atualizacao: registro.atualizacao,
-      valor_descontos: registro.descontos,
-      valor_pagto: registro.valor_pago_total,
-      valor_financeiro: registro.valor_saldo
-    }));
+    if (error) throw error;
+    return data || [];
   },
   
+  async create(item: Omit<ContaReceber, 'id' | 'created_at' | 'updated_at'>): Promise<ContaReceber> {
+    if (!isSupabaseConfigured()) {
+      throwConfigError();
+    }
+    
+    const { data, error } = await supabase
+      .from('contas_receber')
+      .insert([item])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: string, updates: Partial<Omit<ContaReceber, 'id' | 'created_at' | 'updated_at'>>): Promise<ContaReceber> {
+    if (!isSupabaseConfigured()) {
+      throwConfigError();
+    }
+    
+    const { data, error } = await supabase
+      .from('contas_receber')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('deleted_at', null)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string): Promise<void> {
+    if (!isSupabaseConfigured()) {
+      throwConfigError();
+    }
+    
+    const { error } = await supabase
+      .from('contas_receber')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('deleted_at', null);
+    
+    if (error) throw error;
+  },
+
   async canDelete(id: string): Promise<{ canDelete: boolean; reason?: string }> {
-    // Placeholder - sempre permite exclusão por enquanto
-    return { canDelete: true };
+    if (!isSupabaseConfigured()) {
+      return { canDelete: false, reason: 'Please connect to Supabase first' };
+    }
+    
+    try {
+      // Check if this record is part of a series (installments or recurring)
+      const { data: record, error } = await supabase
+        .from('contas_receber')
+        .select('*')
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single();
+      
+      if (error || !record) {
+        return { canDelete: false, reason: 'Registro não encontrado' };
+      }
+      
+      // If it's part of a series, check for related records
+      if (record.eh_parcelado || record.eh_recorrente || record.lancamento_pai_id || (record.total_parcelas && record.total_parcelas > 1)) {
+        const parentId = record.lancamento_pai_id || record.id;
+        const { data: relatedRecords, error: relatedError } = await supabase
+          .from('contas_receber')
+          .select('*')
+          .or(`id.eq.${parentId},lancamento_pai_id.eq.${parentId}`)
+          .is('deleted_at', null);
+        
+        if (relatedError) throw relatedError;
+        
+        if (relatedRecords && relatedRecords.length > 1) {
+          return { 
+            canDelete: false, 
+            reason: 'Este registro faz parte de uma série. Use o cancelamento em massa.',
+            requiresMassModal: true,
+            relatedRecords
+          };
+        }
+      }
+      
+      // Simple record - can be deleted normally
+      return { canDelete: true };
+    } catch (error) {
+      console.error('Error checking delete permissions:', error);
+      return { canDelete: false, reason: 'Erro ao verificar permissões de exclusão' };
+    }
   },
   
   async cancelRecords(ids: string[]): Promise<void> {
-    // Placeholder - implementar cancelamento em massa
-    for (const id of ids) {
-      await registrosFinanceirosService.update(id, { status_parcela: 'Cancelado' });
+    if (!isSupabaseConfigured()) {
+      throwConfigError();
     }
+    
+    const { error } = await supabase
+      .from('contas_receber')
+      .update({ 
+        status: 'cancelado',
+        updated_at: new Date().toISOString()
+      })
+      .in('id', ids)
+      .is('deleted_at', null);
+    
+    if (error) throw error;
   }
 };
 
