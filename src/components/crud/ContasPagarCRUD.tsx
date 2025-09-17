@@ -392,25 +392,19 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
 
   const handleDelete = async (conta: ContaPagar) => {
     try {
-      const deleteCheck = await contasPagarServiceExtended.canDelete(conta.id);
+      // Check if deletion is allowed BEFORE showing confirmation
+      const { canDelete, reason } = await contasPagarServiceExtended.canDelete(conta.id);
       
-      if (!deleteCheck.canDelete) {
-        if (deleteCheck.requiresMassModal && deleteCheck.relatedRecords) {
-          setMassCancellationModal({
-            isOpen: true,
-            records: deleteCheck.relatedRecords
-          });
-        } else {
-          showError(deleteCheck.reason || 'Não é possível excluir este registro');
-        }
+      if (!canDelete) {
+        showError(reason || 'Não é possível excluir este registro');
         return;
       }
-      
-      // Simple record - show confirmation dialog
+
+      // If deletion is allowed, show confirmation dialog
       setConfirmDialog({ isOpen: true, item: conta });
     } catch (error) {
-      console.error('Erro ao verificar possibilidade de exclusão:', error);
-      showError('Erro ao verificar possibilidade de exclusão');
+      console.error('Erro ao verificar se pode excluir:', error);
+      showError('Erro ao verificar permissões de exclusão');
     }
   };
 
@@ -418,8 +412,10 @@ const ContasPagarCRUD: React.FC<ContasPagarCRUDProps> = ({
     if (!confirmDialog.item) return;
     
     try {
+      // Proceed with deletion (validation already done in handleDelete)
       await contasPagarServiceExtended.delete(confirmDialog.item.id);
       showSuccess('Conta excluída com sucesso');
+      setConfirmDialog({ isOpen: false, item: null });
       await loadData();
     } catch (error) {
       console.error('Erro ao excluir conta:', error);
